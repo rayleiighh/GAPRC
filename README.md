@@ -1,17 +1,16 @@
-# GAPRC - Gestion Automatisée des Présences et Réconciliation de Caisse
+# GAPRC - Gestion Automatisée du Pointage et Réconciliation de Caisse
+**TFE 2025-2026 - EPHEC**
 
-Projet de TFE pour le Hall omnisports de Grez-Doiceau.
+## Présentation
+Ce projet vise à automatiser le suivi des prestations et la gestion financière du Hall Omnisports de Grez-Doiceau via une solution IoT (Badgeuse ESP32) et une application Web (PWA).
 
-## État du projet : Phase 1 (Prototype Alpha)
-Le projet est actuellement en phase de validation matérielle (Proof of Concept). 
-Le matériel communique, identifie les badges et transmet les données via Wi-Fi.
+## État d'avancement
+- [x] Phase 1 : Validation matérielle (NFC + OLED + WiFi)
+- [ ] Phase 2 : Développement du Backend (Node.js) et de la Base de données (PostgreSQL)
+- [ ] Phase 3 : Développement de la PWA (Offline-First)
+- [ ] Phase 4 : Déploiement et Mise en boîte
 
-## Stack technique
-- **Microcontrôleur :** ESP32 (DevKit V1)
-- **Langage :** C++ (Framework Arduino via PlatformIO)
-- **Identification :** NFC (Lecteur PN532)
-- **Communication :** Bus I2C, Wi-Fi (HTTP POST JSON)
-
-## Structure du repository
-- `/firmware` : Code source de l'ESP32.
-- `/docs` : Schémas de câblage et journal de bord.
+## Stack Technique
+- **Matériel :** ESP32, PN532 (NFC), SSD1306 (OLED)
+- **Langages :** C++ (Firmware), JavaScript (Node.js/React)
+- **Protocoles :** I2C, HTTP/HTTPS, JSON
