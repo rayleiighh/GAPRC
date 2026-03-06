@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosque GAPRC - POC</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e9ecef;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .kiosk-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 400px;
+        }
+        h1 { color: #343a40; margin-bottom: 5px; }
+        p { color: #6c757d; margin-bottom: 30px; }
+        
+        #status-box {
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            background-color: #f8f9fa;
+            color: #495057;
+            border: 2px dashed #ced4da;
+            transition: all 0.3s ease;
+        }
+
+        /* Classes dynamiques ajoutées par le Javascript */
+        .succes { background-color: #d4edda !important; color: #155724 !important; border-color: #c3e6cb !important; }
+        .erreur { background-color: #f8d7da !important; color: #721c24 !important; border-color: #f5c6cb !important; }
+    </style>
+</head>
+<body>
+
+    <div class="kiosk-container">
+        <h1>Caisse - GAPRC</h1>
+        <p>Veuillez présenter votre badge sur le lecteur</p>
+        
+        <div id="status-box">
+            Écran verrouillé
+        </div>
+    </div>
+
+    <script>
+        // 1. On se connecte au serveur en temps réel
+        const socket = io();
+        const statusBox = document.getElementById('status-box');
+
+        // 2. On écoute le signal 'nouveau_scan' envoyé par le serveur
+        socket.on('nouveau_scan', (donnees) => {
+            
+            if (donnees.status === 'succes') {
+                // Succès : On déverrouille et on dit bonjour !
+                statusBox.className = 'succes';
+                statusBox.innerHTML = `Bonjour ${donnees.nom} !<br><span style="font-size: 16px; font-weight: normal;">Session déverrouillée</span>`;
+            } 
+            else if (donnees.status === 'erreur') {
+                // Erreur : Badge inconnu
+                statusBox.className = 'erreur';
+                statusBox.innerHTML = `Accès refusé<br><span style="font-size: 16px; font-weight: normal;">Badge inconnu</span>`;
+            }
+
+            // 3. Après 4 secondes, on reverrouille l'écran automatiquement
+            setTimeout(() => {
+                statusBox.className = '';
+                statusBox.innerHTML = 'Écran verrouillé';
+            }, 4000);
+        });
+    </script>
+
+</body>
+</html>
