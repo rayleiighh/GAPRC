@@ -12,10 +12,17 @@
 * **Outil :** Docker & Docker Compose.
 * **Pourquoi ?** Permet de conteneuriser la base de données sans polluer l'OS hôte, garantit que l'environnement de développement sera exactement le même que l'environnement de production. Les données sont persistées via un volume Docker (`pgdata`).
 
-## Outils de développement et d'administration
+## Outils de développement et d'administration (Issue 1)
 * **Gestionnaire de Base de Données :** Extension VS Code "Database Client" (par cweijan).
 * **Pourquoi ce choix ?** Pour centraliser l'environnement de développement. Garder l'éditeur de code, le terminal Docker et l'interface de la base de données au sein du même logiciel (VS Code) réduit la charge cognitive et évite de multiplier les logiciels tiers lourds (comme pgAdmin), répondant ainsi au besoin d'un flux de travail "propre et minimaliste".
 
 ## Sécurité et Configuration (Issue 1)
 * **Gestion des secrets :** Utilisation d'un fichier `.env` pour injecter les variables d'environnement (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) dans le conteneur Docker.
 * **Bonne pratique :** Le fichier `.env` a été explicitement ajouté au `.gitignore` pour éviter toute fuite de mots de passe sur le dépôt GitHub public/privé, respectant ainsi les normes de sécurité de base.
+
+## Modélisation de la Base de Données (Issue 2)
+* **Architecture SQL :** Création des tables `users`, `badges`, `shifts` et `cash_reports`.
+* **Relations et Intégrité :** * Implémentation d'une relation `1-1` stricte entre `shifts` et `cash_reports` (contrainte `UNIQUE` sur `shift_id`) pour éviter les doubles encodages de caisse.
+  * Ajout du système `ON DELETE CASCADE` pour assurer la propreté de la base de données (la suppression d'un jobiste supprime son badge et son historique de shift).
+  * Les identifiants matériels NFC (`nfc_uid`) sont protégés par une contrainte `UNIQUE`.
+* **Automatisation :** Utilisation du point de montage `/docker-entrypoint-initdb.d` dans le `docker-compose.yml` pour exécuter le DDL (`01-schema.sql`) automatiquement à la création du conteneur.
