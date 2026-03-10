@@ -35,3 +35,11 @@
   * Injection de 2 jobistes reliés à des UID réels de lecteur NFC.
   * Injection de 2 shifts historiques et de 2 rapports de caisse (dont un avec un écart pour les tests d'affichage).
   * Sécurisation du script avec `ON CONFLICT DO NOTHING` pour la réentrance (idempotence).
+
+## Serveur Backend API (Issue 1)
+* **Initialisation :** Mise en place d'un serveur Node.js avec Express.js.
+* **Architecture :** Séparation des responsabilités préparée (`/routes`, `/controllers`, `/config`).
+* **Sécurité & Réseau :** * Implémentation du middleware `cors` pour autoriser les requêtes cross-origin de la future PWA.
+  * Variables d'environnement gérées via `dotenv`.
+* **Base de données :** Connexion au conteneur PostgreSQL établie via un Pool de connexion (`pg`), optimisant ainsi la gestion des requêtes simultanées.
+* **Monitoring :** Création d'une route `GET /api/health` validant la communication de bout en bout entre l'API et la BDD.
