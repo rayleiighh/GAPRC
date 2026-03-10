@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  db:
+    # On utilise une version légère (alpine) de PostgreSQL 15
+    image: postgres:15-alpine
+    container_name: gaprc_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: gaprc_admin
+      POSTGRES_PASSWORD: gaprc_password
+      POSTGRES_DB: gaprc_db
+    ports:
+      # On relie le port 5432 de ton PC au port 5432 du conteneur
+      - "5432:5432"
+    volumes:
+      # On sauvegarde les données sur ton PC pour ne rien perdre si Docker s'éteint
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
