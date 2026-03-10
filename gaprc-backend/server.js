@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const db = require('./config/db');
+const scanRoutes = require('./routes/scanRoutes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -10,6 +11,10 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 // Permet à Express de lire le JSON envoyé dans le body des requêtes (pour l'ESP32)
 app.use(express.json());
+
+
+// Branchement du routeur pour l'ESP32
+app.use('/api/scan', scanRoutes);
 
 // CA4 : Route de test (Health Check)
 app.get('/api/health', async (req, res) => {

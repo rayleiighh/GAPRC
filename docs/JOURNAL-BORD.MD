@@ -43,3 +43,11 @@
   * Variables d'environnement gérées via `dotenv`.
 * **Base de données :** Connexion au conteneur PostgreSQL établie via un Pool de connexion (`pg`), optimisant ainsi la gestion des requêtes simultanées.
 * **Monitoring :** Création d'une route `GET /api/health` validant la communication de bout en bout entre l'API et la BDD.
+
+## Logique Métier : Pointage NFC (Issue 2)
+* **Architecture MVC :** Création du contrôleur `scanController.js` et du routeur `scanRoutes.js` pour traiter les requêtes POST provenant de l'ESP32.
+* **Sécurité SQL :** Utilisation systématique de requêtes paramétrées (`$1`) via le package `pg` pour se prémunir contre les injections SQL (mesure de sécurité critique pour le TFE).
+* **Logique Check-in / Check-out :** * Si un scan est reçu avec un UID valide : le système vérifie si un `shift` est en cours (`end_time IS NULL`).
+  * Si oui, il clôture le shift (UPDATE `end_time`).
+  * Si non, il ouvre un nouveau shift (INSERT avec `start_time`).
+* **Gestion d'erreurs :** Implémentation du code HTTP `404 Not Found` en cas d'UID inconnu ou inactif.

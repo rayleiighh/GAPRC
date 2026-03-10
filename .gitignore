@@ -1,5 +1,3 @@
 # Fichiers d'environnement (Secrets)
 .env
 /gaprc-backend/node_modules
-
-/gaprc-backend/package-lock.json
