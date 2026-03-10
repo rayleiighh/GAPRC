@@ -26,3 +26,12 @@
   * Ajout du système `ON DELETE CASCADE` pour assurer la propreté de la base de données (la suppression d'un jobiste supprime son badge et son historique de shift).
   * Les identifiants matériels NFC (`nfc_uid`) sont protégés par une contrainte `UNIQUE`.
 * **Automatisation :** Utilisation du point de montage `/docker-entrypoint-initdb.d` dans le `docker-compose.yml` pour exécuter le DDL (`01-schema.sql`) automatiquement à la création du conteneur.
+
+* **Seeding :** Mise en place d'un script `02-seed.sql` pour automatiser l'injection d'un jeu de données de test (mock data) garantissant un environnement de développement prêt à l'emploi (Directeur, Jobiste, et historique de shift) lors de la construction du conteneur.
+
+## **Seeding (Issue 3) :** Création du script `02-seed.sql` répondant aux CA stricts :
+  * Ajout d'une colonne `email` et `password_hash` dans le schéma pour supporter l'authentification.
+  * Injection d'un compte admin avec un mot de passe hashé en bcrypt (`Admin123!`).
+  * Injection de 2 jobistes reliés à des UID réels de lecteur NFC.
+  * Injection de 2 shifts historiques et de 2 rapports de caisse (dont un avec un écart pour les tests d'affichage).
+  * Sécurisation du script avec `ON CONFLICT DO NOTHING` pour la réentrance (idempotence).

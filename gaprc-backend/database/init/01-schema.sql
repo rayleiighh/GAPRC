@@ -1,8 +1,10 @@
--- CA1 : Table users avec un champ role
+-- CA1 : Table users avec email UNIQUE, password_hash et role
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL, -- Indispensable pour la connexion de l'admin
+    password_hash VARCHAR(255),         -- Pour stocker le bcrypt de l'admin
     role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'jobiste')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

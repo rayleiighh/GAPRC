@@ -1,19 +1,29 @@
--- 1. Création des utilisateurs de test
-INSERT INTO users (first_name, last_name, role) VALUES
-('Jean', 'Directeur', 'admin'),
-('Rayane', 'Jobiste', 'jobiste');
+-- CA1 : 1 Admin (avec hash bcrypt pour "Admin123!") et 2 Jobistes
+INSERT INTO users (id, first_name, last_name, email, password_hash, role) VALUES
+(1, 'Jean', 'Directeur', 'admin@gaprc.be', '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'admin'),
+(2, 'Rayane', 'Jobiste 1', 'rayane@gaprc.be', NULL, 'jobiste'),
+(3, 'Marc', 'Jobiste 2', 'marc@gaprc.be', NULL, 'jobiste')
+ON CONFLICT (id) DO NOTHING;
 
--- 2. Assignation des badges (En utilisant les UID de ton POC)
--- L'ID 1 correspond à Jean, l'ID 2 correspond à Rayane
+-- Réinitialise le compteur d'ID car on a forcé les ID 1, 2, 3 manuellement
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+
+-- CA2 : 2 badges NFC valides avec les vrais UID, liés aux jobistes
 INSERT INTO badges (nfc_uid, user_id) VALUES
-('a74166', 1),   -- Badge du directeur
-('5eaece6', 2);  -- Badge de Rayane
+('a74166', 2),   -- Badge réel assigné à Rayane
+('5eaece6', 3)   -- Badge réel assigné à Marc
+ON CONFLICT (nfc_uid) DO NOTHING;
 
--- 3. Création d'un "faux" shift passé pour Rayane (qui a commencé il y a 8h et s'est terminé il y a 1 minute)
-INSERT INTO shifts (user_id, start_time, end_time) VALUES
-(2, CURRENT_TIMESTAMP - INTERVAL '8 hours', CURRENT_TIMESTAMP - INTERVAL '1 minute');
+-- CA3 : Historique factice de 2 shifts passés
+INSERT INTO shifts (id, user_id, start_time, end_time) VALUES
+(1, 2, CURRENT_TIMESTAMP - INTERVAL '2 days 8 hours', CURRENT_TIMESTAMP - INTERVAL '2 days 1 minute'),
+(2, 3, CURRENT_TIMESTAMP - INTERVAL '1 days 8 hours', CURRENT_TIMESTAMP - INTERVAL '1 days 1 minute')
+ON CONFLICT (id) DO NOTHING;
 
--- 4. Création du rapport de caisse lié à ce shift (shift_id 1)
--- La colonne 'difference' se calculera toute seule grâce à ton architecture !
+SELECT setval('shifts_id_seq', (SELECT MAX(id) FROM shifts));
+
+-- CA3 (Suite) : 2 rapports de caisse associés aux shifts
 INSERT INTO cash_reports (shift_id, expected_amount, actual_amount) VALUES
-(1, 150.00, 150.00);
+(1, 150.00, 150.00),   -- Caisse parfaite
+(2, 200.00, 195.50)    -- Erreur de caisse de -4.50€
+ON CONFLICT (shift_id) DO NOTHING;
