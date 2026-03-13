@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -700,6 +700,13 @@ export function DirectorDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dateFilter, setDateFilter] = useState<string>("all");
   const navigate = useNavigate();
+  
+  useEffect(() => {
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+            navigate("/admin/login");
+        }
+    }, [navigate]);
 
   // Unique sorted dates descending
   const uniqueDates = [...new Set(ALL_SHIFTS.map(s => s.date))].sort((a, b) => b.localeCompare(a));
@@ -774,9 +781,15 @@ export function DirectorDashboard() {
               boxShadow: "0 0 6px rgba(34,197,94,0.7)", display: "block", flexShrink: 0 }} />
             <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4ade80" }}>En ligne</span>
           </div>
-          <button onClick={() => navigate("/")} style={{ width: "100%", display: "flex", alignItems: "center",
-            gap: 9, padding: "9px 12px", borderRadius: 10, border: "none", cursor: "pointer",
-            background: "transparent", color: "#52525b", fontSize: "0.875rem", fontWeight: 500 }}>
+          <button onClick={() => {
+            // 1. On supprime les traces dans le navigateur
+            localStorage.removeItem("adminToken");
+            localStorage.removeItem("adminUser");
+            // 2. On redirige vers l'accueil
+            navigate("/");
+            }} 
+            style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 10, border: "none", cursor: "pointer", background: "transparent", color: "#52525b", fontSize: "0.875rem", fontWeight: 500 }}
+          >
             <LogOut style={{ width: 15, height: 15 }} />Déconnexion
           </button>
         </div>
