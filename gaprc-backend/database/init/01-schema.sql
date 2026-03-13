@@ -37,3 +37,17 @@ CREATE TABLE cash_reports (
     report_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE
 );
+
+-- Issue #29 - CA1 & CA2 : Table shift_transactions liée à shifts (ON DELETE CASCADE)
+CREATE TABLE shift_transactions (
+    id SERIAL PRIMARY KEY,
+    shift_id INT NOT NULL,
+    client_name VARCHAR(100) NOT NULL,
+    sport VARCHAR(50) NOT NULL,
+    duration INT NOT NULL, -- en minutes
+    amount_cash DECIMAL(10, 2) DEFAULT 0.00,
+    amount_card DECIMAL(10, 2) DEFAULT 0.00,
+    local_id VARCHAR(100) UNIQUE, -- Crucial pour l'Offline-First (PWA) ! Évite les doublons à la reconnexion.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE
+);

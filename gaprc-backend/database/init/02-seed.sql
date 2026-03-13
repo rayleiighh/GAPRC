@@ -27,3 +27,10 @@ INSERT INTO cash_reports (shift_id, expected_amount, actual_amount) VALUES
 (1, 150.00, 150.00),   -- Caisse parfaite
 (2, 200.00, 195.50)    -- Erreur de caisse de -4.50€
 ON CONFLICT (shift_id) DO NOTHING;
+
+-- Issue #29 - CA3 : Fausses transactions associées aux shifts existants (1 et 2)
+INSERT INTO shift_transactions (shift_id, client_name, sport, duration, amount_cash, amount_card, local_id) VALUES
+(1, 'Jean Dupont', 'Tennis', 60, 15.00, 0.00, 'txn_local_12345'),
+(1, 'Equipe Vétérans', 'Mini-foot', 120, 0.00, 50.00, 'txn_local_12346'),
+(2, 'Marie Curie', 'Badminton', 60, 10.00, 0.00, 'txn_local_12347')
+ON CONFLICT (local_id) DO NOTHING;

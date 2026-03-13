@@ -51,3 +51,11 @@
   * Si oui, il clôture le shift (UPDATE `end_time`).
   * Si non, il ouvre un nouveau shift (INSERT avec `start_time`).
 * **Gestion d'erreurs :** Implémentation du code HTTP `404 Not Found` en cas d'UID inconnu ou inactif.
+
+## Frontend : UX/UI et Maquettage
+* **Outil utilisé :** Figma (avec assistance IA pour la génération des composants de base).
+* **Approche Ergonomique :** * Design "Tablet/Desktop-First" pour les écrans de caisse et de veille, prévus pour être affichés en mode Kiosque sur l'ordinateur du bureau.
+  * Utilisation de larges zones de clic (gros boutons, gros champs de texte) pour faciliter la saisie tactile et éviter les erreurs de frappe (robustesse à l'erreur utilisateur).
+  * Application d'une charte graphique minimaliste (Rouge/Noir/Blanc) aux couleurs du Hall Omnisports.
+  * Mise en évidence visuelle (badges rouges) des écarts de caisse négatifs sur le Dashboard Directeur pour une supervision rapide.
+  
