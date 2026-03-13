@@ -102,3 +102,13 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - Implémentation de la route `POST /api/admin/login` vérifiant l'email et le mot de passe (hashés via bcrypt) dans la base PostgreSQL.
 - Génération d'un JSON Web Token (JWT) d'une validité de 8 heures, contenant uniquement l'ID et le rôle (Zero-Knowledge Architecture pour le mot de passe).
 - Création du middleware `middlewares/auth.js` (verifyToken) chargé d'intercepter, valider et décoder le token `Bearer` pour protéger les routes d'administration.
+
+## Initialisation du Frontend & Intégration Maquettes (Issue 1)
+
+**Objectif :** Mettre en place l'environnement de développement React et intégrer les maquettes haute-fidélité exportées de Figma.
+
+**Réalisation :**
+- Initialisation d'un projet Vite 8 avec TypeScript.
+- Configuration de **Tailwind CSS v4** (nouvelle architecture Engine) pour la gestion du design system.
+- Intégration des composants UI (Lucide React, Framer Motion) pour une interface utilisateur fluide.
+- Mise en place du routage avec `react-router` (`/`, `/checkout/:name`, `/dashboard`).
