@@ -5,15 +5,15 @@ const db = require('./config/db');
 const scanRoutes = require('./routes/scanRoutes');
 const shiftRoutes = require('./routes/shiftRoutes');
 const transactionsRoutes = require('./routes/transactionsRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // CA2 : Configuration du middleware CORS (autorise la future PWA)
 app.use(cors());
-// Permet à Express de lire le JSON envoyé dans le body des requêtes (pour l'ESP32)
 app.use(express.json());
-
+app.use('/api/admin', adminRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api/scan', scanRoutes);
 app.use('/api/shifts', shiftRoutes);

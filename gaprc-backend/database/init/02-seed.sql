@@ -1,6 +1,6 @@
 -- CA1 : 1 Admin (avec hash bcrypt pour "Admin123!") et 2 Jobistes
 INSERT INTO users (id, first_name, last_name, email, password_hash, role) VALUES
-(1, 'Jean', 'Directeur', 'admin@gaprc.be', '$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'admin'),
+(1, 'Jean', 'Directeur', 'admin@gaprc.be', '$2b$10$eHQwG1ZorX.W.A5EIVfRbOKdVXdBPAiQug1UJmLLbSbAT9Uw66g..', 'admin'),
 (2, 'Rayane', 'Jobiste 1', 'rayane@gaprc.be', NULL, 'jobiste'),
 (3, 'Marc', 'Jobiste 2', 'marc@gaprc.be', NULL, 'jobiste')
 ON CONFLICT (id) DO NOTHING;

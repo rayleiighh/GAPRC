@@ -93,3 +93,12 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Intégrité des données (ACID) :** L'insertion des transactions (`shift_transactions`), la génération du rapport (`cash_reports`) et la fermeture du shift (`shifts`) sont englobées dans une transaction PostgreSQL (`BEGIN` / `COMMIT`). En cas d'erreur ou de coupure réseau en plein traitement, un `ROLLBACK` est déclenché, empêchant toute corruption de la base de données.
 - **Sécurité et Anti-fraude :** Le backend calcule lui-même la caisse théorique (`expected_amount`) en bouclant sur les transactions reçues, ce qui empêche toute manipulation depuis le frontend.
 - **Résilience (Offline-First) :** L'API gère le code d'erreur SQL `23505` (violation d'unicité) pour intercepter silencieusement les requêtes en rafale (Background Sync) envoyées par la PWA lorsque le Wi-Fi revient. L'API renvoie un statut HTTP 200 (Idempotence) pour permettre au Service Worker de purger sa file d'attente IndexedDB proprement.
+
+## Sécurisation de l'API : Auth Admin & JWT (Issue 5)
+
+**Objectif :** Protéger l'accès au tableau de bord des directeurs et sécuriser les données financières, conformément aux exigences RGPD du TFE.
+
+**Réalisation :**
+- Implémentation de la route `POST /api/admin/login` vérifiant l'email et le mot de passe (hashés via bcrypt) dans la base PostgreSQL.
+- Génération d'un JSON Web Token (JWT) d'une validité de 8 heures, contenant uniquement l'ID et le rôle (Zero-Knowledge Architecture pour le mot de passe).
+- Création du middleware `middlewares/auth.js` (verifyToken) chargé d'intercepter, valider et décoder le token `Bearer` pour protéger les routes d'administration.
