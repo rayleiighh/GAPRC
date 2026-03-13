@@ -1,6 +1,9 @@
 # GAPRC - Gestion Automatisée du Pointage et Réconciliation de Caisse
 **TFE 2025-2026 - EPHEC**
 
+<img width="225" height="225" alt="image" src="https://github.com/user-attachments/assets/691853c2-3f97-43ea-8f1c-2eb58d3885c1" />
+
+
 ## Présentation
 Ce projet vise à automatiser le suivi des prestations et la gestion financière du Hall Omnisports de Grez-Doiceau via une solution IoT (Badgeuse ESP32) et une application Web (PWA).
 
