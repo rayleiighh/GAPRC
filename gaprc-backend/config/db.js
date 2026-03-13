@@ -21,7 +21,4 @@ pool.on('error', (err) => {
 });
 
 // On exporte le pool pour l'utiliser dans nos futurs controllers
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  pool,
-};
+module.exports = pool;

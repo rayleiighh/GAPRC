@@ -34,3 +34,10 @@ INSERT INTO shift_transactions (shift_id, client_name, sport, duration, amount_c
 (1, 'Equipe Vétérans', 'Mini-foot', 120, 0.00, 50.00, 'txn_local_12346'),
 (2, 'Marie Curie', 'Badminton', 60, 10.00, 0.00, 'txn_local_12347')
 ON CONFLICT (local_id) DO NOTHING;
+
+-- CA3 : Historique factice de 3 shifts (2 passés, 1 en cours pour nos tests)
+INSERT INTO shifts (id, user_id, start_time, end_time) VALUES
+(1, 2, CURRENT_TIMESTAMP - INTERVAL '2 days 8 hours', CURRENT_TIMESTAMP - INTERVAL '2 days 1 minute'),
+(2, 3, CURRENT_TIMESTAMP - INTERVAL '1 days 8 hours', CURRENT_TIMESTAMP - INTERVAL '1 days 1 minute'),
+(3, 2, CURRENT_TIMESTAMP - INTERVAL '4 hours', NULL) -- LE FAMEUX SHIFT 3 (En cours, pas de fin)
+ON CONFLICT (id) DO NOTHING;

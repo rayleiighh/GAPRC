@@ -59,3 +59,37 @@
   * Application d'une charte graphique minimaliste (Rouge/Noir/Blanc) aux couleurs du Hall Omnisports.
   * Mise en évidence visuelle (badges rouges) des écarts de caisse négatifs sur le Dashboard Directeur pour une supervision rapide.
   
+
+  ## Pivot Architectural : Ajout de `shift_transactions` (Issue #29)
+
+**Objectif :** Permettre le calcul automatisé de la caisse théorique pour répondre au besoin de "Réconciliation de caisse".
+
+**Analyse & Décision technique :**
+Initialement, la caisse n'était qu'un total à la fin d'un shift. Pour garantir une double vérification comptable (Cash vs Carte) fiable, une table `shift_transactions` a été ajoutée. 
+- **Relation :** N-1 avec la table `shifts` (`ON DELETE CASCADE` pour éviter les données orphelines si un shift est annulé/supprimé).
+- **Données récoltées :** Nom du client, sport pratiqué, durée de location, et séparation stricte des paiements (`amount_cash` et `amount_card`).
+- **Impact TFE :** Cette granularité permet de générer des "Cash Reports" précis pour le directeur du Hall Omnisport et facilite la vérification en fin de journée pour le jobiste.
+
+## Implémentation API : Clôture de caisse & Idempotence (Issue 8)
+
+**Réalisation :** Route `POST /api/reports` opérationnelle. La logique métier inclut désormais un calcul automatique de la caisse théorique (`expected_amount`) en interrogeant les données générées par la table `shift_transactions` (Issue 29).
+
+**Résilience Offline (Background Sync) :**
+Pour prévenir les "bursts" de requêtes lors de la restauration du Wi-Fi du Hall Omnisport, la route intercepte l'erreur PostgreSQL `23505` (violation de la contrainte d'unicité sur `shift_id`). L'API renvoie alors un `HTTP 200` silencieux, permettant au Service Worker de la PWA de purger sa file d'attente IndexedDB sans crasher ni fausser la comptabilité.
+
+## Implémentation API : Saisie de caisse Offline-First (Issue 4 - API)
+
+**Réalisation :** Création du contrôleur `addTransaction` (POST `/api/transactions`).
+
+**Gestion du mode Hors-ligne (Idempotence) :**
+L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une requête arrive, le backend vérifie la présence du champ `local_id`. Si ce dernier existe déjà en base, l'API renvoie un statut `200 OK` sans recréer la ressource. Cela permet à l'interface client de vider son tampon IndexedDB sans risque de facturer le client en double lors des reconnexions réseau instables du hall.
+
+## Implémentation API : Clôture de caisse & Transactions ACID (Issue 8 & 4)
+
+**Objectif :** Permettre aux jobistes de clôturer leur shift en envoyant simultanément les transactions de la journée et les montants réels de la caisse. L'API doit calculer l'écart automatiquement et résister aux coupures réseau du Hall Omnisport.
+
+**Réalisation & Choix Techniques :**
+- Création des routes `POST /api/transactions` et `POST /api/shifts/close`.
+- **Intégrité des données (ACID) :** L'insertion des transactions (`shift_transactions`), la génération du rapport (`cash_reports`) et la fermeture du shift (`shifts`) sont englobées dans une transaction PostgreSQL (`BEGIN` / `COMMIT`). En cas d'erreur ou de coupure réseau en plein traitement, un `ROLLBACK` est déclenché, empêchant toute corruption de la base de données.
+- **Sécurité et Anti-fraude :** Le backend calcule lui-même la caisse théorique (`expected_amount`) en bouclant sur les transactions reçues, ce qui empêche toute manipulation depuis le frontend.
+- **Résilience (Offline-First) :** L'API gère le code d'erreur SQL `23505` (violation d'unicité) pour intercepter silencieusement les requêtes en rafale (Background Sync) envoyées par la PWA lorsque le Wi-Fi revient. L'API renvoie un statut HTTP 200 (Idempotence) pour permettre au Service Worker de purger sa file d'attente IndexedDB proprement.
