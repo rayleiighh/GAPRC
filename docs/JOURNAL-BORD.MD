@@ -112,3 +112,19 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - Configuration de **Tailwind CSS v4** (nouvelle architecture Engine) pour la gestion du design system.
 - Intégration des composants UI (Lucide React, Framer Motion) pour une interface utilisateur fluide.
 - Mise en place du routage avec `react-router` (`/`, `/checkout/:name`, `/dashboard`).
+## Clôture de l'Issue 5 : Dashboard Administrateur & Authentification JWT
+
+**Objectif :** Sécuriser l'accès aux données financières du Hall Omnisport et remplacer les maquettes statiques par les données réelles de la base de données PostgreSQL.
+
+**Réalisations techniques :**
+- **Sécurité (CA1, CA2, CA4) :** - Création de la page `/admin/login`.
+  - Implémentation de la protection de route côté React : vérification de la présence d'un token JWT valide dans le `localStorage` avant d'afficher le tableau de bord.
+  - Fonctionnalité de déconnexion sécurisée (suppression des traces locales et redirection).
+- **Intégration API (CA3) :** - Mise en place du `fetch` authentifié dans le Dashboard, injectant le token JWT dans le header `Authorization: Bearer <token>`.
+  - Création de la route `GET /api/shifts` côté Node.js avec jointure SQL (`JOIN`) entre les tables `shifts`, `users` et `cash_reports` pour extraire les totaux financiers.
+- **Traitement des données et UI (CA5) :**
+  - Remplacement complet des "Mock Data" (données factices Figma) par le State dynamique React (`useState`, `useEffect`).
+  - Résolution des conflits de typage entre PostgreSQL (qui renvoie les `NUMERIC` en `String` pour éviter les pertes de précision) et JavaScript via un parsage strict en `Number()`.
+  - Création d'un algorithme de génération dynamique d'avatars (`getJobisteMeta`) pour gérer les nouveaux utilisateurs ajoutés via la base de données, rendant les onglets "Calendrier" et "Jobistes" 100% dynamiques.
+
+**Statut :** Validé et fusionné (Resolves #22).
