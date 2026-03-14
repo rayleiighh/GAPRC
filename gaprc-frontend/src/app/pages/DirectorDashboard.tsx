@@ -19,33 +19,21 @@ const JOBISTES_META = [
   { name: "Lucas",   initials: "LU", color: "#16a34a", email: "lucas.b@sportscenter.be",   phone: "+32 474 56 78 90" },
 ];
 
-const ALL_SHIFTS = [
-  { id:  1, jobiste: "Rayane", date: "2026-03-10", arrivee: "08:00", depart: "16:30", heures: 8.5,  attendu: 500.00, reel: 495.50, ecart: -4.50 },
-  { id:  2, jobiste: "Sophie", date: "2026-03-10", arrivee: "09:00", depart: "17:00", heures: 8.0,  attendu: 650.00, reel: 650.00, ecart:  0.00 },
-  { id:  3, jobiste: "Thomas", date: "2026-03-10", arrivee: "10:00", depart: "18:30", heures: 8.5,  attendu: 420.00, reel: 428.00, ecart:  8.00 },
-  { id:  4, jobiste: "Marie",  date: "2026-03-10", arrivee: "07:30", depart: "15:00", heures: 7.5,  attendu: 380.00, reel: 385.50, ecart:  5.50 },
-  { id:  5, jobiste: "Lucas",  date: "2026-03-10", arrivee: "12:00", depart: "20:00", heures: 8.0,  attendu: 550.00, reel: 550.00, ecart:  0.00 },
-  { id:  6, jobiste: "Rayane", date: "2026-03-08", arrivee: "08:00", depart: "16:00", heures: 8.0,  attendu: 480.00, reel: 480.00, ecart:  0.00 },
-  { id:  7, jobiste: "Sophie", date: "2026-03-08", arrivee: "09:00", depart: "17:30", heures: 8.5,  attendu: 620.00, reel: 630.00, ecart: 10.00 },
-  { id:  8, jobiste: "Marie",  date: "2026-03-08", arrivee: "07:30", depart: "15:00", heures: 7.5,  attendu: 370.00, reel: 370.00, ecart:  0.00 },
-  { id:  9, jobiste: "Thomas", date: "2026-03-06", arrivee: "10:00", depart: "18:30", heures: 8.5,  attendu: 440.00, reel: 445.00, ecart:  5.00 },
-  { id: 10, jobiste: "Lucas",  date: "2026-03-06", arrivee: "12:00", depart: "20:00", heures: 8.0,  attendu: 560.00, reel: 565.00, ecart:  5.00 },
-  { id: 11, jobiste: "Rayane", date: "2026-03-05", arrivee: "08:00", depart: "16:30", heures: 8.5,  attendu: 510.00, reel: 508.00, ecart: -2.00 },
-  { id: 12, jobiste: "Sophie", date: "2026-03-05", arrivee: "09:00", depart: "17:00", heures: 8.0,  attendu: 640.00, reel: 640.00, ecart:  0.00 },
-  { id: 13, jobiste: "Marie",  date: "2026-03-05", arrivee: "07:30", depart: "15:30", heures: 8.0,  attendu: 400.00, reel: 400.00, ecart:  0.00 },
-  { id: 14, jobiste: "Thomas", date: "2026-03-03", arrivee: "10:00", depart: "18:30", heures: 8.5,  attendu: 410.00, reel: 415.00, ecart:  5.00 },
-  { id: 15, jobiste: "Lucas",  date: "2026-03-03", arrivee: "12:00", depart: "20:00", heures: 8.0,  attendu: 545.00, reel: 545.00, ecart:  0.00 },
-  { id: 16, jobiste: "Rayane", date: "2026-03-01", arrivee: "08:00", depart: "16:00", heures: 8.0,  attendu: 490.00, reel: 490.00, ecart:  0.00 },
-  { id: 17, jobiste: "Marie",  date: "2026-03-01", arrivee: "07:30", depart: "15:00", heures: 7.5,  attendu: 390.00, reel: 392.00, ecart:  2.00 },
-  { id: 18, jobiste: "Rayane", date: "2026-02-28", arrivee: "08:00", depart: "16:30", heures: 8.5,  attendu: 505.00, reel: 500.00, ecart: -5.00 },
-  { id: 19, jobiste: "Sophie", date: "2026-02-28", arrivee: "09:00", depart: "17:00", heures: 8.0,  attendu: 660.00, reel: 660.00, ecart:  0.00 },
-  { id: 20, jobiste: "Thomas", date: "2026-02-26", arrivee: "10:00", depart: "18:00", heures: 8.0,  attendu: 430.00, reel: 435.00, ecart:  5.00 },
-  { id: 21, jobiste: "Lucas",  date: "2026-02-26", arrivee: "12:00", depart: "20:00", heures: 8.0,  attendu: 545.00, reel: 545.00, ecart:  0.00 },
-  { id: 22, jobiste: "Marie",  date: "2026-02-24", arrivee: "07:30", depart: "15:30", heures: 8.0,  attendu: 395.00, reel: 398.00, ecart:  3.00 },
-  { id: 23, jobiste: "Rayane", date: "2026-02-22", arrivee: "08:00", depart: "16:00", heures: 8.0,  attendu: 480.00, reel: 480.00, ecart:  0.00 },
-  { id: 24, jobiste: "Sophie", date: "2026-02-22", arrivee: "09:00", depart: "17:30", heures: 8.5,  attendu: 635.00, reel: 635.00, ecart:  0.00 },
-  { id: 25, jobiste: "Thomas", date: "2026-02-20", arrivee: "10:00", depart: "18:30", heures: 8.5,  attendu: 415.00, reel: 420.00, ecart:  5.00 },
-];
+const getJobisteMeta = (name: string) => {
+  const found = JOBISTES_META.find(j => j.name === name);
+  if (found) return found;
+  
+  // Si le nom vient de la DB et n'est pas dans la liste Figma, on crée un avatar générique
+  const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "??";
+  return {
+    name: name,
+    initials: initials,
+    color: "#6b7280", // Un beau gris passe-partout
+    email: "non-renseigne@gaprc.be",
+    phone: "-"
+  };
+};
+
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
 function fmtCurrency(n: number) {
@@ -138,8 +126,8 @@ function KpiCard({ label, value, sub, variant = "neutral", icon: Icon }:
 
 /* ─── Jobiste Detail Modal ───────────────────────────────────────── */
 function JobisteDetailModal({ jobisteName, shifts, onClose }:
-  { jobisteName: string; shifts: typeof ALL_SHIFTS; onClose: () => void }) {
-  const meta = JOBISTES_META.find(j => j.name === jobisteName)!;
+  { jobisteName: string; shifts: any[]; onClose: () => void }) {
+  const meta = getJobisteMeta(jobisteName);
   const totalHeures = shifts.reduce((s, j) => s + j.heures, 0);
   const totalReel = shifts.reduce((s, j) => s + j.reel, 0);
   const totalEcart = shifts.reduce((s, j) => s + j.ecart, 0);
@@ -232,7 +220,7 @@ function JobisteDetailModal({ jobisteName, shifts, onClose }:
 }
 
 /* ─── Calendar View ──────────────────────────────────────────────── */
-function CalendarView() {
+function CalendarView({ shifts }: { shifts: any[] }) {
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState(2); // 0-indexed: 2 = March
   const [selectedDay, setSelectedDay] = useState<string | null>("2026-03-10");
@@ -256,10 +244,10 @@ function CalendarView() {
 
   const shiftsForDay = (d: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    return ALL_SHIFTS.filter(s => s.date === dateStr);
+    return shifts.filter(s => s.date === dateStr);
   };
 
-  const selectedShifts = selectedDay ? ALL_SHIFTS.filter(s => s.date === selectedDay) : [];
+  const selectedShifts = selectedDay ? shifts.filter(s => s.date === selectedDay) : [];
   const today = "2026-03-12";
 
   const cells: (number | null)[] = [
@@ -324,7 +312,7 @@ function CalendarView() {
                 {dayShifts.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 2 }}>
                     {dayShifts.map(s => {
-                      const meta = JOBISTES_META.find(j => j.name === s.jobiste);
+                      const meta = getJobisteMeta(s.jobiste);
                       return (
                         <div key={s.id} title={s.jobiste} style={{
                           width: 8, height: 8, borderRadius: "50%",
@@ -372,7 +360,7 @@ function CalendarView() {
             </div>
             <div style={{ padding: "16px 28px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
               {selectedShifts.map(s => {
-                const meta = JOBISTES_META.find(j => j.name === s.jobiste)!;
+                const meta = getJobisteMeta(s.jobiste);
                 return (
                   <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px",
                     background: "#f9fafb", borderRadius: 12, border: "1px solid #f0f0f0" }}>
@@ -400,7 +388,7 @@ function CalendarView() {
 }
 
 /* ─── Jobistes HR Tab ────────────────────────────────────────────── */
-function JobistesTab() {
+function JobistesTab({ shifts }: { shifts: any[] }) {
   const [period, setPeriod] = useState<"mars-2026" | "fevrier-2026" | "3-mois">("mars-2026");
   const [selectedJobiste, setSelectedJobiste] = useState<string | null>(null);
 
@@ -410,7 +398,7 @@ function JobistesTab() {
     { value: "3-mois",       label: "3 derniers mois" },
   ] as const;
 
-  const filteredShifts = ALL_SHIFTS.filter(s => {
+  const filteredShifts = shifts.filter(s => {
     if (period === "mars-2026")    return s.date.startsWith("2026-03");
     if (period === "fevrier-2026") return s.date.startsWith("2026-02");
     return s.date >= "2026-01-01";
@@ -423,6 +411,7 @@ function JobistesTab() {
     const totalEcart  = shifts.reduce((s, j) => s + j.ecart, 0);
     return { shifts, totalHeures, totalReel, totalEcart };
   };
+  const vraisJobistes = [...new Set(shifts.map(s => s.jobiste))].map(getJobisteMeta);
 
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
@@ -455,7 +444,7 @@ function JobistesTab() {
 
       {/* Jobiste cards grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-        {JOBISTES_META.map((meta, i) => {
+        {vraisJobistes.map((meta, i) => {
           const stats = getStats(meta.name);
           if (stats.shifts.length === 0) return (
             <div key={meta.name} style={{ background: "white", borderRadius: 20, padding: "24px",
@@ -699,21 +688,66 @@ function SettingsTab() {
 export function DirectorDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [shifts, setShifts] = useState<any[]>([]); // 👈 Nouvel état pour les vraies données
+  const [loading, setLoading] = useState(true);   // 👈 Pour afficher un chargement
   const navigate = useNavigate();
   
+// 🔴 Le fameux fetch sécurisé
   useEffect(() => {
-        const token = localStorage.getItem("adminToken");
-        if (!token) {
-            navigate("/admin/login");
-        }
-    }, [navigate]);
+    const fetchShifts = async () => {
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        navigate("/admin/login");
+        return;
+      }
 
-  // Unique sorted dates descending
-  const uniqueDates = [...new Set(ALL_SHIFTS.map(s => s.date))].sort((a, b) => b.localeCompare(a));
+      try {
+        // On fait l'appel vers ton vrai backend avec le JWT dans le Header !
+        const response = await fetch("http://localhost:3000/api/shifts", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // 🛠️ ON CONVERTIT LES CHAINES EN NOMBRES POUR JAVASCRIPT
+          const formattedData = data.map((shift: any) => ({
+              ...shift,
+              heures: Number(shift.heures),
+              attendu: Number(shift.attendu),
+              reel: Number(shift.reel),
+              ecart: Number(shift.ecart)
+          }));
+
+          setShifts(formattedData); // On injecte les données converties !
+        } else if (response.status === 401 || response.status === 403) {
+          // Si le token est expiré ou invalide, on le jette dehors
+          localStorage.removeItem("adminToken");
+          navigate("/admin/login");
+        }
+      } catch (error) {
+        console.error("Erreur de connexion à l'API :", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchShifts();
+  }, [navigate]);
+
+// 1. ON VÉRIFIE D'ABORD SI ÇA CHARGE (On bloque le rendu ici si besoin)
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] text-gray-500 font-bold">Chargement des données sécurisées...</div>;
+  }
+
+  // 2. ENSUITE SEULEMENT, ON FAIT LES CALCULS (Car on est sûr d'avoir les données)
+  const uniqueDates = [...new Set(shifts.map(s => s.date))].sort((a, b) => b.localeCompare(a));
 
   const filteredShifts = dateFilter === "all"
-    ? ALL_SHIFTS
-    : ALL_SHIFTS.filter(s => s.date === dateFilter);
+    ? shifts
+    : shifts.filter(s => s.date === dateFilter);
 
   const totalAttendu = filteredShifts.reduce((s, r) => s + r.attendu, 0);
   const totalReel    = filteredShifts.reduce((s, r) => s + r.reel, 0);
@@ -895,7 +929,7 @@ export function DirectorDashboard() {
                 {filteredShifts.map((shift, idx) => {
                   const isNeg  = shift.ecart < 0;
                   const isLast = idx === filteredShifts.length - 1;
-                  const meta = JOBISTES_META.find(j => j.name === shift.jobiste)!;
+                  const meta = getJobisteMeta(shift.jobiste);
                   return (
                     <motion.div key={shift.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.03 + idx * 0.03, duration: 0.3 }}
@@ -959,10 +993,10 @@ export function DirectorDashboard() {
           )}
 
           {/* ─── JOBISTES TAB ─── */}
-          {activeTab === "jobistes" && <JobistesTab />}
+          {activeTab === "jobistes" && <JobistesTab shifts={shifts} />}
 
           {/* ─── CALENDRIER TAB ─── */}
-          {activeTab === "calendrier" && <CalendarView />}
+          {activeTab === "calendrier" && <CalendarView shifts={shifts} />}
 
           {/* ─── SETTINGS TAB ─── */}
           {activeTab === "settings" && <SettingsTab />}

@@ -75,3 +75,38 @@ exports.closeShift = async (req, res) => {
         client.release();
     }
 };
+
+// ==========================================
+// NOUVELLE FONCTION POUR LE DASHBOARD DIRECTEUR
+// ==========================================
+
+// GET /api/shifts
+exports.getAllShifts = async (req, res) => {
+    try {
+        // On joint shifts, users ET cash_reports pour avoir toutes les données financières !
+        const query = `
+            SELECT 
+                s.id,
+                u.first_name || ' ' || u.last_name AS jobiste,
+                TO_CHAR(s.start_time, 'YYYY-MM-DD') AS date,
+                TO_CHAR(s.start_time, 'HH24:MI') AS arrivee,
+                TO_CHAR(s.end_time, 'HH24:MI') AS depart,
+                ROUND(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600, 2) AS heures,
+                cr.expected_amount AS attendu,
+                cr.actual_amount AS reel,
+                (cr.actual_amount - cr.expected_amount) AS ecart
+            FROM shifts s
+            JOIN users u ON s.user_id = u.id
+            JOIN cash_reports cr ON s.id = cr.shift_id
+            WHERE s.end_time IS NOT NULL
+            ORDER BY s.start_time DESC;
+        `;
+        
+        const { rows } = await pool.query(query);
+        res.status(200).json(rows);
+
+    } catch (error) {
+        console.error('Erreur getAllShifts:', error);
+        res.status(500).json({ error: 'Erreur lors de la récupération des shifts' });
+    }
+};
