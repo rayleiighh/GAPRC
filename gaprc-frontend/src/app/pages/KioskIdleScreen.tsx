@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 
 /* ─── Animated NFC Icon ──────────────────────────────────────────── */
 function NFCIcon() {
@@ -249,6 +250,27 @@ function OnlinePill() {
 /* ─── Main Screen ────────────────────────────────────────────────── */
 export function KioskIdleScreen() {
   const navigate = useNavigate();
+  // 🔌 INJECTION WEBSOCKET (Issue 2)
+  useEffect(() => {
+    // CA1 : Connexion au serveur backend
+    const socket = io("http://localhost:3000");
+
+    // CA2 : Écoute de l'événement magique envoyé par le scanController
+    socket.on("unlock_session", (data) => {
+      console.log("🔓 Ordre de déverrouillage reçu !", data);
+      
+      // On sauvegarde l'ID du shift pour que la page de checkout puisse l'utiliser plus tard !
+      localStorage.setItem("current_shift_id", data.shift_id.toString());
+      
+      // CA3 : On navigue automatiquement sans toucher la souris !
+      navigate(`/checkout/${encodeURIComponent(data.jobisteName)}`);
+    });
+
+    // Nettoyage pour éviter les fuites de mémoire
+    return () => {
+      socket.disconnect();
+    };
+  }, [navigate]);
 
   return (
     <div

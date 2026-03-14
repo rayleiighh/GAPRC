@@ -128,3 +128,30 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
   - Création d'un algorithme de génération dynamique d'avatars (`getJobisteMeta`) pour gérer les nouveaux utilisateurs ajoutés via la base de données, rendant les onglets "Calendrier" et "Jobistes" 100% dynamiques.
 
 **Statut :** Validé et fusionné (Resolves #22).
+
+## Clôture des Issues #19 (WebSocket), #20 (Transactions) et #21 (Offline-First)
+
+**Objectif :** Finaliser la boucle complète de l'application : du scan du badge matériel jusqu'à la sauvegarde en base de données, tout en garantissant une résilience totale aux pannes de réseau (Architecture PWA).
+
+**Réalisations techniques :**
+- **Déverrouillage Kiosque & Temps Réel (Issue 2) :** - Intégration de `socket.io` (Backend) et `socket.io-client` (Frontend).
+  - Création du contrôleur `processNfcScan` qui intercepte le scan du badge (simulé via requêtes HTTP), crée le shift en DB, et émet un événement `unlock_session`.
+  - Le frontend écoute cet événement et navigue dynamiquement vers l'interface de caisse du jobiste concerné.
+  
+- **PWA & Résilience Réseau - Offline-First (Issue 4) :**
+  - Implémentation d'une base de données locale dans le navigateur via `Dexie.js` (IndexedDB).
+  - Gestion du flux d'enregistrement de secours : en cas de coupure réseau (détection via `navigator.onLine` ou échec du `fetch`), les transactions sont stockées localement.
+  - Création d'un écouteur d'événement (`window.addEventListener('online')`) pour la synchronisation automatique en arrière-plan au retour d'internet.
+
+- **Finalisation du Shift (Issue 3) :**
+  - Envoi effectif de la clôture de caisse avec le calcul des écarts vers PostgreSQL.
+
+**Décision d'Architecture & UX :**
+- **Abandon justifié du CA4 (Issue #19) :** Le critère demandant un reverrouillage automatique après X minutes d'inactivité a été consciemment écarté.
+  *Justification :* L'application Kiosque a pour but de rester ouverte tout au long du shift pour permettre l'encodage des clients au fil de l'eau. Un reverrouillage intempestif forcerait le jobiste à re-badger constamment, causant une mauvaise UX et risquant de provoquer des pertes d'état (state React) dans le formulaire en cours de remplissage, voire des clôtures asynchrones.
+
+**Difficultés rencontrées & Résolutions :**
+1. **Conflit de typage SQL (`22P02`) :** Incompatibilité entre l'input libre de durée (ex: "1h30") et le type `INTEGER` de la DB. Résolu en altérant la table vers `VARCHAR`.
+2. **Gestion des Timezones (Décalage de 2h) :** L'envoi de la date via `toISOString()` cumulé à la conversion `AT TIME ZONE` de PostgreSQL faussait l'heure d'enregistrement. Résolu en formatant la date localement en JS (format pur `YYYY-MM-DD HH:mm:ss`) et en retirant les sur-conversions de la requête SQL.
+
+**Statut :** Issues #19, #20 et #21 validées et fermées. Boucle de caisse 100% opérationnelle.

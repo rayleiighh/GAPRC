@@ -2,7 +2,7 @@ const pool = require('../config/db');
 
 // POST /api/shifts/close
 exports.closeShift = async (req, res) => {
-    const { shift_id, comment, amount_cash, amount_card, transactions } = req.body;
+    const { shift_id, comment, amount_cash, amount_card, transactions, start_time, end_time } = req.body;
 
     // On récupère un client dédié du pool pour faire la transaction SQL (CA5)
     const client = await pool.connect(); 
@@ -42,11 +42,14 @@ exports.closeShift = async (req, res) => {
         `;
         const reportResult = await client.query(reportQuery, [shift_id, expected_amount, actual_amount]);
 
-        // Fermeture officielle du shift (on met à jour le end_time)
+        // Fermeture officielle du shift (On insère les heures locales pures, sans conversion !)
         const closeShiftQuery = `
-            UPDATE shifts SET end_time = CURRENT_TIMESTAMP WHERE id = $1;
+            UPDATE shifts 
+            SET start_time = $2, 
+                end_time = $3 
+            WHERE id = $1;
         `;
-        await client.query(closeShiftQuery, [shift_id]);
+        await client.query(closeShiftQuery, [shift_id, start_time, end_time]);
 
         // FIN DE LA TRANSACTION SQL : On valide tout (CA5)
         await client.query('COMMIT');
@@ -83,7 +86,7 @@ exports.closeShift = async (req, res) => {
 // GET /api/shifts
 exports.getAllShifts = async (req, res) => {
     try {
-        // On joint shifts, users ET cash_reports pour avoir toutes les données financières !
+        // On récupère les heures pures, sans conversion !
         const query = `
             SELECT 
                 s.id,

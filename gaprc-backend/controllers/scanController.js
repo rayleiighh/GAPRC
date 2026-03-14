@@ -10,7 +10,6 @@ const processNfcScan = async (req, res) => {
 
     try {
         // CA2 : Requête paramétrée ($1) pour éviter les injections SQL
-        // On joint la table users pour avoir le nom de la personne
         const badgeQuery = `
             SELECT b.id AS badge_id, u.id AS user_id, u.first_name, u.last_name, u.role
             FROM badges b
@@ -25,6 +24,7 @@ const processNfcScan = async (req, res) => {
         }
 
         const user = badgeRows[0];
+        const fullName = `${user.first_name} ${user.last_name}`;
 
         // CA4 : Vérifier s'il y a un shift en cours (end_time IS NULL)
         const openShiftQuery = `
@@ -34,32 +34,46 @@ const processNfcScan = async (req, res) => {
         const { rows: shiftRows } = await db.query(openShiftQuery, [user.user_id]);
 
         if (shiftRows.length > 0) {
-            // SCÉNARIO A : Un shift est ouvert -> On le ferme (Check-out)
+            // SCÉNARIO A : UN SHIFT EST DÉJÀ OUVERT !
+            // Le jobiste a badgé une deuxième fois. Dans ton flux TFE, ça veut dire 
+            // qu'il veut "rouvrir" l'écran de caisse en cours.
             const shiftId = shiftRows[0].id;
-            const closeShiftQuery = `
-                UPDATE shifts
-                SET end_time = CURRENT_TIMESTAMP
-                WHERE id = $1
-            `;
-            await db.query(closeShiftQuery, [shiftId]);
+            
+            // 🪄 MAGIE TEMPS RÉEL (CA2 de l'Issue 2) : On déverrouille le kiosque
+            req.io.emit('unlock_session', {
+                action: 'resume', // Indique que c'est une reprise
+                jobisteName: fullName,
+                shift_id: shiftId
+            });
 
             return res.status(200).json({
-                message: `Au revoir, ${user.first_name}. Fin de shift enregistrée.`,
-                action: 'checkout',
+                message: `Session reprise pour ${user.first_name}.`,
+                action: 'resume',
                 user: { first_name: user.first_name, last_name: user.last_name }
             });
 
         } else {
-            // SCÉNARIO B : Pas de shift ouvert -> On en crée un nouveau (Check-in)
+            // SCÉNARIO B : PAS DE SHIFT OUVERT -> On en crée un nouveau (Check-in)
             const openNewShiftQuery = `
                 INSERT INTO shifts (user_id, start_time)
                 VALUES ($1, CURRENT_TIMESTAMP)
+                RETURNING id
             `;
-            await db.query(openNewShiftQuery, [user.user_id]);
+            // On récupère l'ID du shift nouvellement créé grâce au RETURNING id
+            const newShiftResult = await db.query(openNewShiftQuery, [user.user_id]);
+            const newShiftId = newShiftResult.rows[0].id;
+
+            // 🪄 MAGIE TEMPS RÉEL (CA2 de l'Issue 2) : On déverrouille le kiosque
+            req.io.emit('unlock_session', {
+                action: 'checkin', // Nouveau shift
+                jobisteName: fullName,
+                shift_id: newShiftId
+            });
 
             return res.status(200).json({
                 message: `Bonjour, ${user.first_name}. Début de shift enregistré.`,
                 action: 'checkin',
+                shift_id: newShiftId,
                 user: { first_name: user.first_name, last_name: user.last_name }
             });
         }

@@ -6,7 +6,7 @@ import {
   Banknote, CreditCard, MessageSquare,
   Users, Clock, Euro, AlertCircle, ClipboardList, Check, Pencil,
 } from "lucide-react";
-
+import { db } from "../../services/db";
 /* ─── Types ──────────────────────────────────────────────────────── */
 interface Entry {
   id: string;
@@ -517,7 +517,7 @@ function ClotureModal({
   entries: Entry[];
   jobisteName: string;
   onClose: () => void;
-  onConfirm: (comment: string) => void;
+  onConfirm: (comment: string, arrivee: string, depart: string) => void;
   startTimeStr: string;
 }) {
   const [comment, setComment] = useState("");
@@ -536,7 +536,7 @@ function ClotureModal({
   const handleConfirm = async () => {
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1200));
-    onConfirm(comment);
+    onConfirm(comment, heureArrivee, heureDepart); 
   };
 
   return (
@@ -731,6 +731,21 @@ export function JobisteCheckoutForm() {
     const now = new Date();
     return now.toTimeString().slice(0, 5);
   });
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   const [editingStartTime, setEditingStartTime] = useState(false);
   
   const [checklist, setChecklist] = useState<ChecklistItem[]>(() =>
@@ -755,11 +770,118 @@ export function JobisteCheckoutForm() {
     ));
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async (comment: string, arrivee: string, depart: string) => { 
     setShowCloture(false);
+
+    const transactions = entries.map(e => ({
+      local_id: e.id,
+      client_name: [e.prenom, e.nom].filter(Boolean).join(" "),
+      sport: e.sport,
+      duration: e.heures,
+      amount_cash: e.montantCash,
+      amount_card: e.montantBancontact
+    }));
+
+    const shift_id = parseInt(localStorage.getItem("current_shift_id") || "0", 10);
+
+    const now = new Date();
+    
+    // Date d'arrivée
+    const [arrH, arrM] = arrivee.split(':');
+    const startDate = new Date(now);
+    startDate.setHours(parseInt(arrH), parseInt(arrM), 0, 0);
+
+    // Date de départ
+    const [depH, depM] = depart.split(':');
+    const endDate = new Date(now);
+    endDate.setHours(parseInt(depH), parseInt(depM), 0, 0);
+
+    // Si l'heure de départ est plus petite (ex: arrivée 22:00, départ 01:00), 
+    // ça veut dire qu'on a passé minuit ! On ajoute 1 jour.
+    if (endDate < startDate) {
+        endDate.setDate(endDate.getDate() + 1);
+    }
+
+    // 🛠️ NOUVEAU : On formate la date en texte clair local (SANS le fuseau horaire Z)
+    const formatLocal = (d: Date) => {
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+    };
+
+    const payload = {
+      shift_id,
+      comment,
+      amount_cash: totalCash,
+      amount_card: totalBC,
+      transactions,
+      start_time: formatLocal(startDate), // "2026-03-14 10:29:00"
+      end_time: formatLocal(endDate)      // "2026-03-14 23:32:00"
+    };
+
+    try {
+      if (navigator.onLine) {
+        // SCÉNARIO A : INTERNET EST LÀ. On envoie direct à l'API !
+        const res = await fetch("http://localhost:3000/api/shifts/close", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Erreur serveur API");
+      } else {
+        // SCÉNARIO B : PAS D'INTERNET. On force l'erreur pour passer dans le catch
+        throw new Error("Hors-ligne");
+      }
+    } catch (err) {
+      // 🪄 LA MAGIE DE LA PWA : Le réseau a crashé ? Pas de panique, on sauvegarde en local !
+      console.warn("Réseau indisponible. Sauvegarde dans IndexedDB (Dexie)...");
+      await db.pendingReports.add({
+        ...payload,
+        timestamp: Date.now()
+      });
+    }
+
+    // Quoi qu'il arrive (Online ou Offline), l'utilisateur voit le succès !
     setSubmitted(true);
     setTimeout(() => navigate("/"), 2500);
   };
+
+  // 🔄 ÉCOUTEUR DE RETOUR RÉSEAU (Critère CA3 de l'Issue 4)
+  useEffect(() => {
+    const syncPendingReports = async () => {
+      if (!navigator.onLine) return; // Toujours pas de Wi-Fi
+
+      // On vérifie s'il y a des caisses coincées en local
+      const pending = await db.pendingReports.toArray();
+      if (pending.length === 0) return;
+
+      console.log(`🌐 Wi-Fi revenu ! Synchronisation de ${pending.length} caisses en arrière-plan...`);
+
+      for (const report of pending) {
+        try {
+          const res = await fetch("http://localhost:3000/api/shifts/close", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(report)
+          });
+
+          if (res.ok) {
+            console.log(`✅ Caisse (ID Local: ${report.id}) envoyée en DB avec succès !`);
+            await db.pendingReports.delete(report.id!); // On supprime la donnée locale
+          }
+        } catch (err) {
+          console.error("❌ Échec de synchro. On réessaiera plus tard.");
+        }
+      }
+    };
+
+    // Dès que le navigateur détecte le retour du Wi-Fi, il lance la synchro
+    window.addEventListener('online', syncPendingReports);
+    
+    // On tente aussi une synchro au premier chargement de l'écran
+    syncPendingReports();
+
+    return () => window.removeEventListener('online', syncPendingReports);
+  }, []);
 
   const checklistCompleted = checklist.filter(i => i.checked).length;
   const checklistPercentage = Math.round((checklistCompleted / checklist.length) * 100);
@@ -853,10 +975,10 @@ export function JobisteCheckoutForm() {
 
         {/* Right */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 999 }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "block", boxShadow: "0 0 5px rgba(34,197,94,0.6)" }} />
-            <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "#16a34a" }}>En ligne</span>
-          </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 12px", background: isOnline ? "#f0fdf4" : "#fff1f2", border: `1px solid ${isOnline ? "#bbf7d0" : "#fecdd3"}`, borderRadius: 999 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: isOnline ? "#22c55e" : "#e11d48", display: "block", boxShadow: `0 0 5px ${isOnline ? "rgba(34,197,94,0.6)" : "rgba(225,29,72,0.6)"}` }} />
+              <span style={{ fontSize: "0.72rem", fontWeight: 600, color: isOnline ? "#16a34a" : "#e11d48" }}>{isOnline ? "En ligne" : "Hors-ligne"}</span>
+            </div>
           <Avatar name={name} size={36} />
         </div>
       </header>
