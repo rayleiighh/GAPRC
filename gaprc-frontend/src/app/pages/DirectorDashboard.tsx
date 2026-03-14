@@ -7,7 +7,7 @@ import {
   CheckCircle2, Activity, Calendar, X,
   ChevronLeft, ChevronRight, Mail, Phone,
   Clock, Euro, Filter, Save, Bell, Shield, Database,
-  FileText, Download,
+  FileText, Download, Plus, Trash2, CreditCard, UserPlus
 } from "lucide-react";
 
 /* ─── Mock Data ──────────────────────────────────────────────────── */
@@ -387,10 +387,148 @@ function CalendarView({ shifts }: { shifts: any[] }) {
   );
 }
 
+/* ─── Add Jobiste Modal (Issue 6) ────────────────────────────────── */
+function AddJobisteModal({ onClose, onRefresh }: { onClose: () => void; onRefresh: () => void }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    if (!firstName || !lastName || !email) {
+      setError("Tous les champs sont requis.");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch("http://localhost:3000/api/admin/jobistes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName, email }),
+      });
+      if (res.ok) {
+        onRefresh();
+        onClose();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Erreur lors de l'ajout.");
+      }
+    } catch (err) {
+      setError("Erreur de connexion au serveur.");
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "#f9fafb", border: "2px solid #e5e7eb", borderRadius: 10,
+    padding: "10px 14px", fontSize: "0.9rem", color: "#111827", outline: "none", fontFamily: "inherit",
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
+        style={{ width: 400, background: "white", borderRadius: 20, padding: 24, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+        <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#111827", marginBottom: 16 }}>Ajouter un jobiste</h3>
+        {error && <p style={{ color: "#dc2626", fontSize: "0.8rem", marginBottom: 10, fontWeight: 600 }}>{error}</p>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          <input placeholder="Prénom" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={inputStyle} />
+          <input placeholder="Nom" value={lastName} onChange={(e) => setLastName(e.target.value)} style={inputStyle} />
+          <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "2px solid #e5e7eb", background: "white", fontWeight: 600, cursor: "pointer" }}>Annuler</button>
+          <button onClick={handleSubmit} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "#111827", color: "white", fontWeight: 600, cursor: "pointer" }}>Ajouter</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─── Assign Badge Modal (Issue 6) ───────────────────────────────── */
+function AssignBadgeModal({ jobiste, onClose, onRefresh }: { jobiste: any; onClose: () => void; onRefresh: () => void }) {
+  const [uid, setUid] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    if (!uid) return setError("L'UID est requis.");
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch(`http://localhost:3000/api/admin/jobistes/${jobiste.id}/badge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ nfc_uid: uid }),
+      });
+      if (res.ok) {
+        onRefresh();
+        onClose();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Erreur lors de l'assignation.");
+      }
+    } catch (err) {
+      setError("Erreur de connexion au serveur.");
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
+        style={{ width: 400, background: "white", borderRadius: 20, padding: 24, boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+        <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#111827", marginBottom: 6 }}>Assigner un badge RFID</h3>
+        <p style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: 16 }}>Pour <strong>{jobiste.first_name} {jobiste.last_name}</strong></p>
+        {error && <p style={{ color: "#dc2626", fontSize: "0.8rem", marginBottom: 10, fontWeight: 600 }}>{error}</p>}
+        <input autoFocus placeholder="Scannez ou tapez l'UID du badge..." value={uid} onChange={(e) => setUid(e.target.value)}
+          style={{ width: "100%", background: "#f9fafb", border: "2px solid #2563eb", borderRadius: 10, padding: "12px 14px", fontSize: "1rem", color: "#111827", outline: "none", marginBottom: 20, fontFamily: "monospace" }} />
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "2px solid #e5e7eb", background: "white", fontWeight: 600, cursor: "pointer" }}>Annuler</button>
+          <button onClick={handleSubmit} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "#2563eb", color: "white", fontWeight: 600, cursor: "pointer" }}>Assigner</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ─── Jobistes HR Tab ────────────────────────────────────────────── */
+/* ─── Jobistes HR Tab (Issue 6 : API Connectée) ──────────────────── */
 function JobistesTab({ shifts }: { shifts: any[] }) {
   const [period, setPeriod] = useState<"mars-2026" | "fevrier-2026" | "3-mois">("mars-2026");
   const [selectedJobiste, setSelectedJobiste] = useState<string | null>(null);
+  
+  // Nouveaux états pour l'API Jobistes
+  const [dbJobistes, setDbJobistes] = useState<any[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [badgeModalFor, setBadgeModalFor] = useState<any | null>(null);
+
+  const fetchJobistes = async () => {
+    const token = localStorage.getItem("adminToken");
+    try {
+      const res = await fetch("http://localhost:3000/api/admin/jobistes", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) setDbJobistes(await res.json());
+    } catch (err) {
+      console.error("Erreur chargement jobistes", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobistes();
+  }, []);
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement ${name} ?`)) return;
+    const token = localStorage.getItem("adminToken");
+    try {
+      const res = await fetch(`http://localhost:3000/api/admin/jobistes/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) fetchJobistes();
+    } catch (err) {
+      console.error("Erreur suppression", err);
+    }
+  };
 
   const periodOptions = [
     { value: "mars-2026",    label: "Mars 2026" },
@@ -404,122 +542,116 @@ function JobistesTab({ shifts }: { shifts: any[] }) {
     return s.date >= "2026-01-01";
   });
 
-  const getStats = (name: string) => {
-    const shifts = filteredShifts.filter(s => s.jobiste === name);
-    const totalHeures = shifts.reduce((s, j) => s + j.heures, 0);
-    const totalReel   = shifts.reduce((s, j) => s + j.reel, 0);
-    const totalEcart  = shifts.reduce((s, j) => s + j.ecart, 0);
-    return { shifts, totalHeures, totalReel, totalEcart };
+  const getStats = (fullName: string) => {
+    const jobisteShifts = filteredShifts.filter(s => s.jobiste === fullName);
+    const totalHeures = jobisteShifts.reduce((s, j) => s + j.heures, 0);
+    const totalReel   = jobisteShifts.reduce((s, j) => s + j.reel, 0);
+    const totalEcart  = jobisteShifts.reduce((s, j) => s + j.ecart, 0);
+    return { shifts: jobisteShifts, totalHeures, totalReel, totalEcart };
   };
-  const vraisJobistes = [...new Set(shifts.map(s => s.jobiste))].map(getJobisteMeta);
 
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
       style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Header + period filter */}
+      {/* Header + Actions */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.025em" }}>
-            Fiches RH Jobistes
+            Gestion de l'équipe ({dbJobistes.length})
           </h2>
           <p style={{ fontSize: "0.8rem", color: "#9ca3af", marginTop: 2 }}>
-            Résumé des prestations par étudiant
+            Gérez les accès RFID et visualisez les prestations
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", borderRadius: 12,
-          padding: "6px 8px", border: "1px solid #e5e7eb", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-          <Filter style={{ width: 14, height: 14, color: "#9ca3af", flexShrink: 0 }} />
-          {periodOptions.map(opt => (
-            <button key={opt.value} onClick={() => setPeriod(opt.value)}
-              style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
-                fontSize: "0.8rem", fontWeight: period === opt.value ? 700 : 500,
-                background: period === opt.value ? "#111827" : "transparent",
-                color: period === opt.value ? "white" : "#6b7280",
-                transition: "all 0.15s" }}>
-              {opt.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "white", borderRadius: 12,
+            padding: "4px", border: "1px solid #e5e7eb", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            {periodOptions.map(opt => (
+              <button key={opt.value} onClick={() => setPeriod(opt.value)}
+                style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                  fontSize: "0.75rem", fontWeight: period === opt.value ? 700 : 500,
+                  background: period === opt.value ? "#111827" : "transparent",
+                  color: period === opt.value ? "white" : "#6b7280", transition: "all 0.15s" }}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setShowAddModal(true)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 10, background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "white", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem", boxShadow: "0 4px 12px rgba(220,38,38,0.2)" }}>
+            <UserPlus style={{ width: 16, height: 16 }} /> Ajouter un jobiste
+          </button>
         </div>
       </div>
 
       {/* Jobiste cards grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-        {vraisJobistes.map((meta, i) => {
-          const stats = getStats(meta.name);
-          if (stats.shifts.length === 0) return (
-            <div key={meta.name} style={{ background: "white", borderRadius: 20, padding: "24px",
-              border: "1px solid #f0f0f0", opacity: 0.5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: "#f3f4f6",
-                  display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "#9ca3af" }}>{meta.initials}</span>
-                </div>
-                <div>
-                  <p style={{ fontWeight: 700, color: "#374151" }}>{meta.name}</p>
-                  <p style={{ fontSize: "0.75rem", color: "#9ca3af" }}>Aucune prestation sur cette période</p>
-                </div>
-              </div>
-            </div>
-          );
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+        {dbJobistes.map((jobiste, i) => {
+          const fullName = `${jobiste.first_name} ${jobiste.last_name}`;
+          const meta = getJobisteMeta(fullName);
+          const stats = getStats(fullName);
+          const hasBadge = !!jobiste.nfc_uid;
+
           return (
-            <motion.div key={meta.name} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }} whileHover={{ y: -2 }}
-              style={{ background: "white", borderRadius: 20, overflow: "hidden", cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)",
-                transition: "box-shadow 0.2s" }}
-              onClick={() => setSelectedJobiste(meta.name)}
+            <motion.div key={jobiste.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              style={{ background: "white", borderRadius: 20, overflow: "hidden",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column" }}
             >
               <div style={{ height: 4, background: `linear-gradient(90deg, ${meta.color}, ${meta.color}88)` }} />
-              <div style={{ padding: "20px 24px 24px" }}>
-                {/* Name + avatar */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: `${meta.color}18`,
-                    border: `2px solid ${meta.color}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <span style={{ fontSize: "0.85rem", fontWeight: 900, color: meta.color }}>{meta.initials}</span>
+              <div style={{ padding: "20px 24px", flex: 1 }}>
+                
+                {/* Header Card */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 14, background: `${meta.color}18`,
+                      border: `2px solid ${meta.color}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: "0.85rem", fontWeight: 900, color: meta.color }}>{meta.initials}</span>
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 800, fontSize: "1rem", color: "#111827", cursor: "pointer" }} onClick={() => setSelectedJobiste(fullName)}>
+                        {fullName}
+                      </p>
+                      <p style={{ fontSize: "0.7rem", color: "#9ca3af" }}>{jobiste.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontWeight: 800, fontSize: "1rem", color: "#111827" }}>{meta.name}</p>
-                    <p style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{meta.email}</p>
+                  <button onClick={() => handleDelete(jobiste.id, fullName)} title="Supprimer le jobiste" style={{ background: "#fef2f2", border: "none", width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                    <Trash2 style={{ width: 14, height: 14, color: "#ef4444" }} />
+                  </button>
+                </div>
+
+                {/* Badge Status */}
+                <div style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: hasBadge ? "#eff6ff" : "#fef2f2", borderRadius: 10, border: `1px solid ${hasBadge ? "#bfdbfe" : "#fecaca"}` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <CreditCard style={{ width: 16, height: 16, color: hasBadge ? "#2563eb" : "#ef4444" }} />
+                    <div>
+                      <p style={{ fontSize: "0.75rem", fontWeight: 700, color: hasBadge ? "#1d4ed8" : "#b91c1c" }}>
+                        {hasBadge ? "Badge Actif" : "Aucun Badge RFID"}
+                      </p>
+                      {hasBadge && <p style={{ fontSize: "0.65rem", color: "#60a5fa", fontFamily: "monospace" }}>UID: {jobiste.nfc_uid}</p>}
+                    </div>
                   </div>
+                  <button onClick={() => setBadgeModalFor(jobiste)} style={{ background: "white", border: `1px solid ${hasBadge ? "#bfdbfe" : "#fecaca"}`, borderRadius: 6, padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700, color: hasBadge ? "#2563eb" : "#dc2626", cursor: "pointer" }}>
+                    {hasBadge ? "Modifier" : "Assigner"}
+                  </button>
                 </div>
 
                 {/* Stats grid */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: "12px 14px" }}>
-                    <p style={{ fontSize: "0.65rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Shifts</p>
-                    <p style={{ fontSize: "1.4rem", fontWeight: 900, color: "#111827", letterSpacing: "-0.03em" }}>{stats.shifts.length}</p>
-                    <p style={{ fontSize: "0.7rem", color: "#d1d5db" }}>sessions</p>
+                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: "10px 14px" }}>
+                    <p style={{ fontSize: "0.6rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Shifts / Heures</p>
+                    <p style={{ fontSize: "1.1rem", fontWeight: 900, color: "#111827", letterSpacing: "-0.02em" }}>
+                      {stats.shifts.length} <span style={{ fontSize: "0.8rem", color: "#6b7280", fontWeight: 600 }}>({fmtHours(stats.totalHeures)})</span>
+                    </p>
                   </div>
-                  <div style={{ background: "#f9fafb", borderRadius: 12, padding: "12px 14px" }}>
-                    <p style={{ fontSize: "0.65rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Heures</p>
-                    <p style={{ fontSize: "1.4rem", fontWeight: 900, color: "#111827", letterSpacing: "-0.03em" }}>{fmtHours(stats.totalHeures)}</p>
-                    <p style={{ fontSize: "0.7rem", color: "#d1d5db" }}>moy. {fmtHours(stats.totalHeures / stats.shifts.length)}/shift</p>
-                  </div>
-                  <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "12px 14px" }}>
-                    <p style={{ fontSize: "0.65rem", fontWeight: 700, color: "#15803d", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Montant</p>
-                    <p style={{ fontSize: "1.1rem", fontWeight: 900, color: "#15803d", letterSpacing: "-0.03em" }}>{fmtCurrency(stats.totalReel)}</p>
-                    <p style={{ fontSize: "0.7rem", color: "#86efac" }}>total encaissé</p>
-                  </div>
-                  <div style={{
-                    background: stats.totalEcart < 0 ? "#fef2f2" : "#f9fafb",
-                    border: `1px solid ${stats.totalEcart < 0 ? "#fecaca" : "#f0f0f0"}`,
-                    borderRadius: 12, padding: "12px 14px"
-                  }}>
-                    <p style={{ fontSize: "0.65rem", fontWeight: 700, color: stats.totalEcart < 0 ? "#ef4444" : "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 4 }}>Écart</p>
-                    <p style={{ fontSize: "1.1rem", fontWeight: 900, color: stats.totalEcart < 0 ? "#b91c1c" : stats.totalEcart > 0 ? "#15803d" : "#9ca3af", letterSpacing: "-0.03em" }}>
+                  <div style={{ background: stats.totalEcart < 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${stats.totalEcart < 0 ? "#fecaca" : "#bbf7d0"}`, borderRadius: 12, padding: "10px 14px" }}>
+                    <p style={{ fontSize: "0.6rem", fontWeight: 700, color: stats.totalEcart < 0 ? "#ef4444" : "#15803d", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Écart Cumulé</p>
+                    <p style={{ fontSize: "1.1rem", fontWeight: 900, color: stats.totalEcart < 0 ? "#b91c1c" : stats.totalEcart > 0 ? "#15803d" : "#9ca3af", letterSpacing: "-0.02em" }}>
                       {stats.totalEcart > 0 ? "+" : ""}{fmtCurrency(stats.totalEcart)}
                     </p>
-                    <p style={{ fontSize: "0.7rem", color: "#d1d5db" }}>cumulé</p>
                   </div>
                 </div>
 
-                {/* View button */}
-                <button style={{ width: "100%", marginTop: 16, padding: "10px", borderRadius: 12,
-                  border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer",
-                  fontSize: "0.82rem", fontWeight: 600, color: "#374151",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                  <FileText style={{ width: 14, height: 14 }} />
-                  Voir la fiche complète
+                <button onClick={() => setSelectedJobiste(fullName)} style={{ width: "100%", marginTop: 12, padding: "8px", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, color: "#374151", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <FileText style={{ width: 13, height: 13 }} /> Voir la fiche RH
                 </button>
               </div>
             </motion.div>
@@ -527,34 +659,13 @@ function JobistesTab({ shifts }: { shifts: any[] }) {
         })}
       </div>
 
-      {/* Total summary footer */}
-      <div style={{ background: "#18181b", borderRadius: 20, padding: "20px 28px",
-        display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.09em" }}>Récapitulatif de la période</p>
-          <p style={{ fontSize: "1rem", fontWeight: 800, color: "#f4f4f5", marginTop: 4 }}>
-            {filteredShifts.length} shifts · {fmtHours(filteredShifts.reduce((s, j) => s + j.heures, 0))} prestées
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 24 }}>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ fontSize: "0.7rem", color: "#52525b", fontWeight: 600 }}>Total encaissé</p>
-            <p style={{ fontSize: "1.35rem", fontWeight: 900, color: "white", letterSpacing: "-0.03em" }}>
-              {fmtCurrency(filteredShifts.reduce((s, j) => s + j.reel, 0))}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Detail modal */}
+      {/* Modals */}
       <AnimatePresence>
         {selectedJobiste && (
-          <JobisteDetailModal
-            jobisteName={selectedJobiste}
-            shifts={filteredShifts.filter(s => s.jobiste === selectedJobiste)}
-            onClose={() => setSelectedJobiste(null)}
-          />
+          <JobisteDetailModal jobisteName={selectedJobiste} shifts={filteredShifts.filter(s => s.jobiste === selectedJobiste)} onClose={() => setSelectedJobiste(null)} />
         )}
+        {showAddModal && <AddJobisteModal onClose={() => setShowAddModal(false)} onRefresh={fetchJobistes} />}
+        {badgeModalFor && <AssignBadgeModal jobiste={badgeModalFor} onClose={() => setBadgeModalFor(null)} onRefresh={fetchJobistes} />}
       </AnimatePresence>
     </motion.div>
   );

@@ -155,3 +155,26 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 2. **Gestion des Timezones (Décalage de 2h) :** L'envoi de la date via `toISOString()` cumulé à la conversion `AT TIME ZONE` de PostgreSQL faussait l'heure d'enregistrement. Résolu en formatant la date localement en JS (format pur `YYYY-MM-DD HH:mm:ss`) et en retirant les sur-conversions de la requête SQL.
 
 **Statut :** Issues #19, #20 et #21 validées et fermées. Boucle de caisse 100% opérationnelle.
+
+## Clôture de l'Issue #6 : [PWA] Gestion des Jobistes & Assignation des Badges RFID
+
+**Objectif :** Rendre l'administration de l'application 100% autonome en permettant au directeur de gérer son équipe (CRUD) et de lier les badges matériels (NFC) directement depuis le tableau de bord sécurisé.
+
+**Réalisations techniques :**
+
+**1. Backend (API & Sécurité) :**
+- Création des routes RESTful dans `/routes/adminRoutes.js` (`GET`, `POST`, `DELETE`).
+- Sécurisation stricte des routes d'administration via le middleware `verifyToken` (JWT) pour empêcher toute manipulation externe.
+- Implémentation du contrôleur `adminController.js` :
+  - `getAllJobistes` : Jointure SQL (`LEFT JOIN`) entre les tables `users` et `badges` pour remonter l'état de l'accès matériel de chaque jobiste.
+  - `addJobiste` : Insertion sécurisée avec gestion des conflits (erreur 409 si l'email existe déjà).
+  - `assignBadge` : Logique transactionnelle (`BEGIN/COMMIT`) remplaçant l'ancien badge par le nouveau de manière atomique, avec gestion de la contrainte d'unicité de l'UID NFC.
+  - `deleteJobiste` : Suppression propre en cascade (le `ON DELETE CASCADE` de PostgreSQL s'occupant de nettoyer le badge et l'historique associés).
+
+**2. Frontend (React / Interface Directeur) :**
+- Refonte complète de l'onglet "Jobistes" dans `DirectorDashboard.tsx` pour passer de données statiques (Mocks) à un affichage dynamique (`fetch` API).
+- Création de `AddJobisteModal` : Formulaire contrôlé pour la création de profil.
+- Création de `AssignBadgeModal` : Interface d'appairage matériel (prête à recevoir un input manuel ou le scan direct d'un lecteur RFID USB clavier).
+- Gestion des états de chargement, rafraîchissement automatique de la liste après une action, et gestion des erreurs de saisie renvoyées par le backend.
+
+**Statut :** Issue #6 validée et fermée. Le Dashboard Admin est désormais totalement interconnecté avec le backend métier et matériel.
