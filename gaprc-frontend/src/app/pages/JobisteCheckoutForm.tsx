@@ -1264,20 +1264,17 @@ export function JobisteCheckoutForm() {
 
           {/* Clôturer button */}
           <motion.button
-            onClick={() => entries.length > 0 && setShowCloture(true)}
-            disabled={entries.length === 0}
-            whileHover={entries.length > 0 ? { scale: 1.02 } : {}}
-            whileTap={entries.length > 0 ? { scale: 0.98 } : {}}
+            onClick={() => setShowCloture(true)} // Plus besoin de vérifier la longueur !
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             style={{
               height: 52, padding: "0 28px", flexShrink: 0,
-              background: entries.length === 0
-                ? "#e5e7eb"
-                : "linear-gradient(135deg, #22c55e, #15803d)",
-              color: entries.length === 0 ? "#9ca3af" : "white",
-              border: "none", borderRadius: 14, cursor: entries.length === 0 ? "not-allowed" : "pointer",
+              background: "linear-gradient(135deg, #22c55e, #15803d)", // Toujours vert et cliquable
+              color: "white",
+              border: "none", borderRadius: 14, cursor: "pointer",
               fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.01em",
               display: "flex", alignItems: "center", gap: 8,
-              boxShadow: entries.length > 0 ? "0 6px 20px rgba(22,163,74,0.3)" : "none",
+              boxShadow: "0 6px 20px rgba(22,163,74,0.3)",
               transition: "all 0.2s",
             }}
           >
