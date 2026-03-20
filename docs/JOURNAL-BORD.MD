@@ -178,3 +178,21 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - Gestion des états de chargement, rafraîchissement automatique de la liste après une action, et gestion des erreurs de saisie renvoyées par le backend.
 
 **Statut :** Issue #6 validée et fermée. Le Dashboard Admin est désormais totalement interconnecté avec le backend métier et matériel.
+
+## Clôture de l'Issue #7 : [PWA] Installation Native & Résilience Globale (Offline-First)
+
+**Objectif :** Transformer l'application web en un logiciel installable (Progressive Web App) pour le Kiosque, et garantir que la synchronisation des caisses hors-ligne se fasse de manière globale et transparente.
+
+**Réalisations techniques :**
+
+**1. Configuration PWA (Vite & Manifest) :**
+- Intégration de `vite-plugin-pwa` pour la génération automatique du Service Worker (`sw.js`).
+- Configuration stricte du `manifest.webmanifest` (icônes `maskable` et `any` en 192x192 et 512x512, mode `standalone` pour masquer l'UI du navigateur Chrome).
+- Ajout d'une modale `ReloadPrompt` permettant de notifier l'utilisateur lors du déploiement d'une nouvelle version de l'application.
+
+**2. Refactoring de la Synchronisation (IndexedDB) :**
+- Découverte d'un bug d'architecture : l'écouteur `window.addEventListener('online')` était circonscrit à la page de caisse, empêchant la synchronisation si le réseau revenait sur l'écran de veille.
+- Résolution : Extraction de la logique de synchronisation (lecture de `Dexie.js` et requêtes `POST /api/shifts/close`) vers le point d'entrée global de l'application (`App.tsx`).
+- Résultat : La boucle de résilience est désormais parfaite. Les données sont sauvegardées localement en cas de coupure, et dépilées silencieusement en arrière-plan dès le retour du réseau, peu importe l'écran actif.
+
+**Statut :** Issue #7 validée. L'application est installable et 100% tolérante aux pannes réseau.
