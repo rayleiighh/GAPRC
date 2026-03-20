@@ -845,44 +845,6 @@ export function JobisteCheckoutForm() {
     setTimeout(() => navigate("/"), 2500);
   };
 
-  // 🔄 ÉCOUTEUR DE RETOUR RÉSEAU (Critère CA3 de l'Issue 4)
-  useEffect(() => {
-    const syncPendingReports = async () => {
-      if (!navigator.onLine) return; // Toujours pas de Wi-Fi
-
-      // On vérifie s'il y a des caisses coincées en local
-      const pending = await db.pendingReports.toArray();
-      if (pending.length === 0) return;
-
-      console.log(`🌐 Wi-Fi revenu ! Synchronisation de ${pending.length} caisses en arrière-plan...`);
-
-      for (const report of pending) {
-        try {
-          const res = await fetch("http://localhost:3000/api/shifts/close", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(report)
-          });
-
-          if (res.ok) {
-            console.log(`✅ Caisse (ID Local: ${report.id}) envoyée en DB avec succès !`);
-            await db.pendingReports.delete(report.id!); // On supprime la donnée locale
-          }
-        } catch (err) {
-          console.error("❌ Échec de synchro. On réessaiera plus tard.");
-        }
-      }
-    };
-
-    // Dès que le navigateur détecte le retour du Wi-Fi, il lance la synchro
-    window.addEventListener('online', syncPendingReports);
-    
-    // On tente aussi une synchro au premier chargement de l'écran
-    syncPendingReports();
-
-    return () => window.removeEventListener('online', syncPendingReports);
-  }, []);
-
   const checklistCompleted = checklist.filter(i => i.checked).length;
   const checklistPercentage = Math.round((checklistCompleted / checklist.length) * 100);
 

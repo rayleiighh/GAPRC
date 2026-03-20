@@ -10,7 +10,6 @@ export default defineConfig({
     tailwindcss(), 
     // CONFIGURATION DE LA PWA (Issue 7)
     VitePWA({
-      registerType: 'autoUpdate', // Met à jour l'app automatiquement chez les clients
       includeAssets: ['favicon.svg', 'icons.svg', 'apple-touch-icon.png', 'masked-icon.svg'], // On inclut tes SVG existants
       manifest: {
         name: 'Sports Center POS',
@@ -23,13 +22,14 @@ export default defineConfig({
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ]
       }

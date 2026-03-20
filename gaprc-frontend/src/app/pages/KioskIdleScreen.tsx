@@ -193,7 +193,8 @@ function Clock() {
 }
 
 /* ─── Network Status Pill ────────────────────────────────────────── */
-function OnlinePill() {
+/* ─── Network Status Pill ────────────────────────────────────────── */
+function OnlinePill({ isOnline }: { isOnline: boolean }) {
   return (
     <div
       className="flex items-center gap-2"
@@ -204,32 +205,30 @@ function OnlinePill() {
         border: "1px solid rgba(255,255,255,1)",
         borderRadius: 999,
         padding: "9px 18px 9px 14px",
-        boxShadow:
-          "0 4px 24px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.05)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.05)",
       }}
     >
-      {/* Glowing green dot */}
-      <div
-        className="relative"
-        style={{ width: 10, height: 10 }}
-      >
-        <span
-          style={{
-            position: "absolute",
-            inset: -3,
-            borderRadius: "50%",
-            background: "rgba(52,199,89,0.28)",
-            animation: "glow-ping 2s ease-out infinite",
-          }}
-        />
+      {/* Glowing dot */}
+      <div className="relative" style={{ width: 10, height: 10 }}>
+        {isOnline && (
+          <span
+            style={{
+              position: "absolute",
+              inset: -3,
+              borderRadius: "50%",
+              background: "rgba(52,199,89,0.28)",
+              animation: "glow-ping 2s ease-out infinite",
+            }}
+          />
+        )}
         <span
           style={{
             display: "block",
             width: 10,
             height: 10,
             borderRadius: "50%",
-            background: "#34c759",
-            boxShadow: "0 0 6px rgba(52,199,89,0.7)",
+            background: isOnline ? "#34c759" : "#ff3b30", // Vert si en ligne, Rouge si hors-ligne
+            boxShadow: isOnline ? "0 0 6px rgba(52,199,89,0.7)" : "0 0 6px rgba(255,59,48,0.7)",
           }}
         />
       </div>
@@ -241,7 +240,7 @@ function OnlinePill() {
           letterSpacing: "0.01em",
         }}
       >
-        En ligne
+        {isOnline ? "En ligne" : "Hors-ligne"}
       </span>
     </div>
   );
@@ -249,6 +248,22 @@ function OnlinePill() {
 
 /* ─── Main Screen ────────────────────────────────────────────────── */
 export function KioskIdleScreen() {
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const navigate = useNavigate();
   // 🔌 INJECTION WEBSOCKET (Issue 2)
   useEffect(() => {
@@ -297,7 +312,7 @@ export function KioskIdleScreen() {
         }}
         className="absolute top-7 right-7 z-20"
       >
-        <OnlinePill />
+        <OnlinePill isOnline={isOnline} />
       </motion.div>
 
       {/* ── Top-left: Branding ── */}
