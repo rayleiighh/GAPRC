@@ -681,22 +681,56 @@ function JobistesTab({ shifts }: { shifts: any[] }) {
 }
 
 /* ─── Settings Tab───────────────────────────── */
+/* ─── Composants UI (Sortis pour éviter le bug de re-render) ─────── */
+const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
+  <div style={{ background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)" }}>
+    <div style={{ padding: "18px 28px", borderBottom: "1px solid #f4f4f5", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 9, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon style={{ width: 15, height: 15, color: "#6b7280" }} />
+      </div>
+      <h3 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>{title}</h3>
+    </div>
+    <div style={{ padding: "24px 28px" }}>{children}</div>
+  </div>
+);
+
+const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid #f9fafb" }}>
+    <div>
+      <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151" }}>{label}</p>
+      <p style={{ fontSize: "0.78rem", color: "#9ca3af", marginTop: 2 }}>{sub}</p>
+    </div>
+    <button onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 99, border: "none", background: value ? "#dc2626" : "#e5e7eb", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }} />
+    </button>
+  </div>
+);
+
+/* ─── Settings Tab (Vraie Sauvegarde + Lien PDF) ─────────────────── */
 function SettingsTab({ shifts }: { shifts: any[] }) {
   const [saved, setSaved] = useState(false);
   
-  const [centerName, setCenterName] = useState("Sports Center Bruxelles");
-  const [address, setAddress] = useState("Rue du Sport 42, 1000 Bruxelles");
-  const [adminEmail, setAdminEmail] = useState("direction@sportscenter.be");
-  const [adminPhone, setAdminPhone] = useState("+32 2 123 45 67");
-  const [notifEcart, setNotifEcart] = useState(true);
-  const [notifCloture, setNotifCloture] = useState(true);
+  // 💾 On initialise avec le localStorage s'il existe, sinon valeur par défaut
+  const [centerName, setCenterName] = useState(() => localStorage.getItem("sc_centerName") || "Sports Center Bruxelles");
+  const [address, setAddress] = useState(() => localStorage.getItem("sc_address") || "Rue du Sport 42, 1000 Bruxelles");
+  const [adminEmail, setAdminEmail] = useState(() => localStorage.getItem("sc_adminEmail") || "direction@sportscenter.be");
+  const [adminPhone, setAdminPhone] = useState(() => localStorage.getItem("sc_adminPhone") || "+32 2 123 45 67");
+  const [notifEcart, setNotifEcart] = useState(() => localStorage.getItem("sc_notifEcart") !== "false");
+  const [notifCloture, setNotifCloture] = useState(() => localStorage.getItem("sc_notifCloture") !== "false");
 
   const handleSave = () => {
+    // 💾 On sauvegarde les vraies données dans le navigateur
+    localStorage.setItem("sc_centerName", centerName);
+    localStorage.setItem("sc_address", address);
+    localStorage.setItem("sc_adminEmail", adminEmail);
+    localStorage.setItem("sc_adminPhone", adminPhone);
+    localStorage.setItem("sc_notifEcart", notifEcart.toString());
+    localStorage.setItem("sc_notifCloture", notifCloture.toString());
+
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  // LOGIQUE D'EXPORT CSV
   const exportCSV = () => {
     if (shifts.length === 0) return alert("Aucune donnée à exporter.");
     const headers = ["ID", "Date", "Jobiste", "Arrivee", "Depart", "Attendu", "Reel", "Ecart"];
@@ -715,15 +749,21 @@ function SettingsTab({ shifts }: { shifts: any[] }) {
     document.body.removeChild(link);
   };
 
-  // LOGIQUE D'EXPORT PDF
   const exportPDF = () => {
     if (shifts.length === 0) return alert("Aucune donnée à exporter.");
     const doc = new jsPDF();
+    
+    // 🖨️ ON UTILISE LES PARAMÈTRES POUR LE PDF !
     doc.setFontSize(18);
-    doc.text("Rapport Comptable - Sports Center", 14, 22);
+    doc.text(`Rapport Comptable - ${centerName}`, 14, 22);
+    
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Généré le : ${new Date().toLocaleDateString('fr-BE')}`, 14, 30);
+    
+    // Ajout de l'adresse et contact en sous-titre
+    doc.setFontSize(9);
+    doc.text(`${address} | Contact: ${adminEmail} | Tél: ${adminPhone}`, 14, 36);
 
     const totalAttendu = shifts.reduce((s, j) => s + j.attendu, 0);
     const totalReel = shifts.reduce((s, j) => s + j.reel, 0);
@@ -736,7 +776,7 @@ function SettingsTab({ shifts }: { shifts: any[] }) {
     ]);
 
     autoTable(doc, {
-      startY: 38,
+      startY: 44, // 👈 On a descendu le tableau pour laisser de la place au texte
       head: [['Date', 'Jobiste', 'Horaire', 'Attendu', 'Réel', 'Écart']],
       body: tableData,
       theme: 'grid',
@@ -752,35 +792,10 @@ function SettingsTab({ shifts }: { shifts: any[] }) {
     padding: "12px 16px", fontSize: "0.9rem", color: "#111827", outline: "none", fontFamily: "inherit",
   };
 
-  const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
-    <div style={{ background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)" }}>
-      <div style={{ padding: "18px 28px", borderBottom: "1px solid #f4f4f5", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon style={{ width: 15, height: 15, color: "#6b7280" }} />
-        </div>
-        <h3 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>{title}</h3>
-      </div>
-      <div style={{ padding: "24px 28px" }}>{children}</div>
-    </div>
-  );
-
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid #f9fafb" }}>
-      <div>
-        <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151" }}>{label}</p>
-        <p style={{ fontSize: "0.78rem", color: "#9ca3af", marginTop: 2 }}>{sub}</p>
-      </div>
-      <button onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 99, border: "none", background: value ? "#dc2626" : "#e5e7eb", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }} />
-      </button>
-    </div>
-  );
-
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
       style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 680 }}>
       
-      {/* SECTIONS PARAMETRES */}
       <Section title="Informations du centre" icon={Shield}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
@@ -812,7 +827,6 @@ function SettingsTab({ shifts }: { shifts: any[] }) {
         <Toggle value={notifCloture} onChange={setNotifCloture} label="Résumé de clôture" sub="Recevoir un récapitulatif par email à chaque clôture de shift" />
       </Section>
 
-      {/* SECTION DES EXPORTS */}
       <Section title="Données & export comptable" icon={Database}>
         <div style={{ display: "flex", gap: 12 }}>
           <button onClick={exportCSV} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
