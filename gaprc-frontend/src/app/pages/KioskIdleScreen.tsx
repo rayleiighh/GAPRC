@@ -268,7 +268,7 @@ export function KioskIdleScreen() {
   // 🔌 INJECTION WEBSOCKET (Issue 2)
   useEffect(() => {
     // CA1 : Connexion au serveur backend
-    const socket = io("http://localhost:3000");
+    const socket = io(`${import.meta.env.VITE_API_URL}`);
 
     // CA2 : Écoute de l'événement magique envoyé par le scanController
     socket.on("unlock_session", (data) => {

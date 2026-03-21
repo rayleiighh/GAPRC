@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
+import { AddEntryModal } from "../components/checkout/AddEntryModal";
+import { ChecklistModal } from "../components/checkout/ChecklistModal";
+import { ClotureModal } from "../components/checkout/ClotureModal";
 import {
-  Plus, Trash2, CheckCircle2, Loader2, X, ChevronLeft,
-  Banknote, CreditCard, MessageSquare,
-  Users, Clock, Euro, AlertCircle, ClipboardList, Check, Pencil,
+  Plus, Trash2, CheckCircle2, ChevronLeft,
+  Banknote, CreditCard,
+  Users, Clock, Euro, ClipboardList, Check, Pencil,
 } from "lucide-react";
 import { db } from "../../services/db";
+
 /* ─── Types ──────────────────────────────────────────────────────── */
-interface Entry {
+export interface Entry {
   id: string;
   nom: string;
   prenom: string;
@@ -18,7 +22,7 @@ interface Entry {
   montantBancontact: number;
 }
 
-interface ChecklistItem {
+export interface ChecklistItem {
   id: string;
   label: string;
   checked: boolean;
@@ -26,20 +30,20 @@ interface ChecklistItem {
 }
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
-function uid() {
+export function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-function fmtCurrency(n: number) {
+export function fmtCurrency(n: number) {
   return n.toFixed(2).replace(".", ",") + " €";
 }
 
-function fmtTime(date: Date) {
+export function fmtTime(date: Date) {
   return date.toLocaleTimeString("fr-BE", { hour: "2-digit", minute: "2-digit" });
 }
 
 /* ─── Checklist Data ─────────────────────────────────────────────── */
-const INITIAL_CHECKLIST: Omit<ChecklistItem, "id" | "checked">[] = [
+export const INITIAL_CHECKLIST: Omit<ChecklistItem, "id" | "checked">[] = [
   { label: "Contrôle & mise en ordre vestiaires", category: "Contrôle & mise en ordre de TOUS les locaux" },
   { label: "Contrôle & mise en ordre salles basses & grande salle", category: "Contrôle & mise en ordre de TOUS les locaux" },
   { label: "Contrôle & mise en ordre WC publics & gradins", category: "Contrôle & mise en ordre de TOUS les locaux" },
@@ -57,7 +61,7 @@ const INITIAL_CHECKLIST: Omit<ChecklistItem, "id" | "checked">[] = [
 ];
 
 /* ─── Avatar ─────────────────────────────────────────────────────── */
-function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
   const initials = name.split(" ").map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase();
   const palette = ["#dc2626", "#7c3aed", "#0284c7", "#d97706", "#16a34a", "#0891b2"];
   const bg = palette[name.charCodeAt(0) % palette.length];
@@ -76,646 +80,10 @@ function Avatar({ name, size = 44 }: { name: string; size?: number }) {
 }
 
 /* ─── Clock ──────────────────────────────────────────────────────── */
-function LiveTime() {
+export function LiveTime() {
   const [t, setT] = useState(new Date());
   useEffect(() => { const id = setInterval(() => setT(new Date()), 1000); return () => clearInterval(id); }, []);
   return <span>{fmtTime(t)}</span>;
-}
-
-/* ─── Add Entry Modal ────────────────────────────────────────────── */
-function AddEntryModal({
-  onClose, onAdd,
-}: { onClose: () => void; onAdd: (e: Omit<Entry, "id">) => void }) {
-  const [nom, setNom] = useState("");
-  const [prenom, setPrenom] = useState("");
-  const [sport, setSport] = useState("");
-  const [heures, setHeures] = useState("");
-  const [montantCash, setMontantCash] = useState("");
-  const [montantBancontact, setMontantBancontact] = useState("");
-  const [errors, setErrors] = useState<string[]>([]);
-
-  const handleSubmit = () => {
-    const errs: string[] = [];
-    // Au moins un nom ou prénom doit être rempli
-    if (!prenom.trim() && !nom.trim()) errs.push("client");
-    if (!sport.trim()) errs.push("sport");
-    if (!heures.trim()) errs.push("heures");
-    
-    const cashVal = parseFloat(montantCash || "0");
-    const bcVal = parseFloat(montantBancontact || "0");
-    if (cashVal + bcVal <= 0) errs.push("montant");
-    
-    if (errs.length) { setErrors(errs); return; }
-    
-    onAdd({
-      nom: nom.trim(),
-      prenom: prenom.trim(),
-      sport: sport.trim(),
-      heures: heures.trim(),
-      montantCash: cashVal,
-      montantBancontact: bcVal,
-    });
-    onClose();
-  };
-
-  const err = (f: string) => errors.includes(f);
-
-  const inputBase: React.CSSProperties = {
-    width: "100%", background: "#f9fafb", border: "2px solid #e5e7eb",
-    borderRadius: 12, padding: "13px 16px", fontSize: "1rem",
-    color: "#111827", outline: "none", fontFamily: "inherit",
-    transition: "border-color 0.2s, box-shadow 0.2s",
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-        backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
-        justifyContent: "center", zIndex: 100, padding: "24px",
-      }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.94, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.94, opacity: 0, y: 20 }}
-        transition={{ type: "spring", stiffness: 340, damping: 32 }}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(720px, 100%)", background: "#ffffff",
-          borderRadius: 24, padding: "0 0 32px",
-          maxHeight: "92vh", overflowY: "auto",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.18)",
-        }}
-      >
-        {/* Handle */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 0" }}>
-          <div style={{ width: 36, height: 4, borderRadius: 99, background: "#e5e7eb" }} />
-        </div>
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px 20px" }}>
-          <div>
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.025em" }}>
-              Nouveau client
-            </h2>
-            <p style={{ fontSize: "0.8rem", color: "#9ca3af", marginTop: 2 }}>Remplissez les informations de la réservation</p>
-          </div>
-          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X style={{ width: 16, height: 16, color: "#6b7280" }} />
-          </button>
-        </div>
-
-        <div style={{ padding: "0 28px", display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Nom + Prénom */}
-          <div>
-            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: err("client") ? "#dc2626" : "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 10 }}>
-              Client (nom et/ou prénom) *
-            </label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <input
-                value={prenom}
-                onChange={(e) => setPrenom(e.target.value)}
-                placeholder="Prénom"
-                style={{ 
-                  ...inputBase, 
-                  borderColor: err("client") ? "#fca5a5" : "#e5e7eb", 
-                  boxShadow: err("client") ? "0 0 0 3px rgba(220,38,38,0.1)" : "none" 
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = err("client") ? "#fca5a5" : "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
-              />
-              <input
-                value={nom}
-                onChange={(e) => setNom(e.target.value)}
-                placeholder="Nom"
-                style={{ 
-                  ...inputBase, 
-                  borderColor: err("client") ? "#fca5a5" : "#e5e7eb", 
-                  boxShadow: err("client") ? "0 0 0 3px rgba(220,38,38,0.1)" : "none" 
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = err("client") ? "#fca5a5" : "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
-              />
-            </div>
-          </div>
-
-          {/* Sport - texte libre */}
-          <div>
-            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: err("sport") ? "#dc2626" : "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 10 }}>
-              Sport / Activité *
-            </label>
-            <input
-              value={sport}
-              onChange={(e) => setSport(e.target.value)}
-              placeholder="ex: Tennis, Badminton, Football..."
-              style={{ 
-                ...inputBase, 
-                borderColor: err("sport") ? "#fca5a5" : "#e5e7eb", 
-                boxShadow: err("sport") ? "0 0 0 3px rgba(220,38,38,0.1)" : "none" 
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = err("sport") ? "#fca5a5" : "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
-            />
-          </div>
-
-          {/* Heures - texte libre */}
-          <div>
-            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: err("heures") ? "#dc2626" : "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 10 }}>
-              Durée *
-            </label>
-            <input
-              value={heures}
-              onChange={(e) => setHeures(e.target.value)}
-              placeholder="ex: 1h, 1h30, 2h15..."
-              style={{ 
-                ...inputBase, 
-                borderColor: err("heures") ? "#fca5a5" : "#e5e7eb", 
-                boxShadow: err("heures") ? "0 0 0 3px rgba(220,38,38,0.1)" : "none" 
-              }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = err("heures") ? "#fca5a5" : "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
-            />
-          </div>
-
-          {/* Montants - cash + bancontact */}
-          <div>
-            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: err("montant") ? "#dc2626" : "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 10 }}>
-              Montant * <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(au moins un montant requis)</span>
-            </label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              {/* Cash */}
-              <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 14, padding: "14px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                  <Banknote style={{ width: 15, height: 15, color: "#16a34a" }} />
-                  <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#15803d", textTransform: "uppercase", letterSpacing: "0.07em" }}>Espèces</span>
-                </div>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    value={montantCash}
-                    onChange={(e) => setMontantCash(e.target.value)}
-                    placeholder="0.00"
-                    style={{
-                      width: "100%",
-                      background: "white",
-                      border: "2px solid #d1fae5",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      paddingRight: 36,
-                      fontSize: "1.2rem",
-                      fontWeight: 800,
-                      letterSpacing: "-0.03em",
-                      color: "#111827",
-                      outline: "none",
-                      fontFamily: "inherit",
-                    }}
-                  />
-                  <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: "1rem", fontWeight: 700, color: "#9ca3af" }}>€</span>
-                </div>
-              </div>
-
-              {/* Bancontact */}
-              <div style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: 14, padding: "14px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-                  <CreditCard style={{ width: 15, height: 15, color: "#2563eb" }} />
-                  <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Bancontact</span>
-                </div>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    value={montantBancontact}
-                    onChange={(e) => setMontantBancontact(e.target.value)}
-                    placeholder="0.00"
-                    style={{
-                      width: "100%",
-                      background: "white",
-                      border: "2px solid #dbeafe",
-                      borderRadius: 10,
-                      padding: "10px 12px",
-                      paddingRight: 36,
-                      fontSize: "1.2rem",
-                      fontWeight: 800,
-                      letterSpacing: "-0.03em",
-                      color: "#111827",
-                      outline: "none",
-                      fontFamily: "inherit",
-                    }}
-                  />
-                  <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", fontSize: "1rem", fontWeight: 700, color: "#9ca3af" }}>€</span>
-                </div>
-              </div>
-            </div>
-            {(parseFloat(montantCash || "0") + parseFloat(montantBancontact || "0")) > 0 && (
-              <div style={{ marginTop: 10, textAlign: "center", padding: "8px", background: "#f9fafb", borderRadius: 10 }}>
-                <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>Total : </span>
-                <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>
-                  {fmtCurrency(parseFloat(montantCash || "0") + parseFloat(montantBancontact || "0"))}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Validation errors */}
-          {errors.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#fef2f2", borderRadius: 10, border: "1px solid #fecaca" }}>
-              <AlertCircle style={{ width: 15, height: 15, color: "#dc2626", flexShrink: 0 }} />
-              <span style={{ fontSize: "0.82rem", color: "#b91c1c", fontWeight: 500 }}>
-                Veuillez remplir tous les champs obligatoires (*)
-              </span>
-            </div>
-          )}
-
-          {/* Submit */}
-          <motion.button
-            type="button"
-            onClick={handleSubmit}
-            whileHover={{ scale: 1.015 }}
-            whileTap={{ scale: 0.985 }}
-            style={{
-              width: "100%", height: 58,
-              background: "linear-gradient(155deg, #dc2626 0%, #b91c1c 100%)",
-              color: "white", border: "none", borderRadius: 14,
-              fontWeight: 800, fontSize: "1rem", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              boxShadow: "0 8px 24px rgba(220,38,38,0.3)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            <Plus style={{ width: 20, height: 20 }} />
-            Ajouter à la session
-          </motion.button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/* ─── Checklist Modal ────────────────────────────────────────────── */
-function ChecklistModal({
-  checklist, onToggle, onClose,
-}: {
-  checklist: ChecklistItem[];
-  onToggle: (id: string) => void;
-  onClose: () => void;
-}) {
-  // Group checklist by category
-  const grouped = checklist.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, ChecklistItem[]>);
-
-  const categories = Object.keys(grouped);
-  
-  // Calculate completion percentage
-  const completed = checklist.filter(i => i.checked).length;
-  const percentage = Math.round((completed / checklist.length) * 100);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-        backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
-        justifyContent: "center", zIndex: 100, padding: 24,
-      }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 320, damping: 28 }}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(680px, 96vw)", background: "#ffffff",
-          borderRadius: 24, overflow: "hidden",
-          boxShadow: "0 40px 80px rgba(0,0,0,0.2)",
-          maxHeight: "90vh",
-        }}
-      >
-        {/* Red top bar */}
-        <div style={{ height: 4, background: "linear-gradient(90deg, #dc2626, #b91c1c)" }} />
-
-        <div style={{ padding: "28px 32px 32px" }}>
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
-            <div>
-              <h2 style={{ fontSize: "1.35rem", fontWeight: 900, color: "#111827", letterSpacing: "-0.03em", marginBottom: 4 }}>
-                Entretien journalier
-              </h2>
-              <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                Checklist des tâches du shift
-              </p>
-            </div>
-            <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <X style={{ width: 16, height: 16, color: "#6b7280" }} />
-            </button>
-          </div>
-
-          {/* Progress bar */}
-          <div style={{ marginBottom: 24, background: "#f3f4f6", borderRadius: 12, padding: "12px 16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                Progression
-              </span>
-              <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>
-                {completed}/{checklist.length}
-              </span>
-            </div>
-            <div style={{ width: "100%", height: 8, background: "#e5e7eb", borderRadius: 99, overflow: "hidden" }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${percentage}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                style={{
-                  height: "100%",
-                  background: percentage === 100 ? "linear-gradient(90deg, #22c55e, #15803d)" : "linear-gradient(90deg, #dc2626, #b91c1c)",
-                  borderRadius: 99,
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Checklist items by category */}
-          <div style={{ maxHeight: "50vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 20 }}>
-            {categories.map((category, catIdx) => (
-              <div key={catIdx}>
-                <h3 style={{ fontSize: "0.82rem", fontWeight: 700, color: "#374151", marginBottom: 10, letterSpacing: "-0.01em" }}>
-                  {catIdx + 1}. {category}
-                </h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingLeft: 8 }}>
-                  {grouped[category].map((item) => (
-                    <motion.button
-                      key={item.id}
-                      onClick={() => onToggle(item.id)}
-                      whileHover={{ x: 2 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 12px",
-                        background: item.checked ? "#f0fdf4" : "#f9fafb",
-                        border: item.checked ? "2px solid #bbf7d0" : "2px solid #e5e7eb",
-                        borderRadius: 10,
-                        cursor: "pointer",
-                        textAlign: "left",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <div style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 6,
-                        background: item.checked ? "#16a34a" : "white",
-                        border: item.checked ? "2px solid #16a34a" : "2px solid #d1d5db",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        transition: "all 0.2s",
-                      }}>
-                        {item.checked && <Check style={{ width: 14, height: 14, color: "white", strokeWidth: 3 }} />}
-                      </div>
-                      <span style={{
-                        fontSize: "0.9rem",
-                        fontWeight: item.checked ? 600 : 500,
-                        color: item.checked ? "#15803d" : "#374151",
-                        textDecoration: item.checked ? "line-through" : "none",
-                        flex: 1,
-                      }}>
-                        {item.label}
-                      </span>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-/* ─── Clôture Modal ──────────────────────────────────────────────── */
-function ClotureModal({
-  entries, jobisteName, onClose, onConfirm, startTimeStr,
-}: {
-  entries: Entry[];
-  jobisteName: string;
-  onClose: () => void;
-  onConfirm: (comment: string, arrivee: string, depart: string) => void;
-  startTimeStr: string;
-}) {
-  const [comment, setComment] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [heureArrivee, setHeureArrivee] = useState(startTimeStr);
-  const [heureDepart, setHeureDepart] = useState(() => {
-    const now = new Date();
-    return now.toTimeString().slice(0, 5);
-  });
-  
-  const totalCash = entries.reduce((s, e) => s + e.montantCash, 0);
-  const totalBC = entries.reduce((s, e) => s + e.montantBancontact, 0);
-  const total = totalCash + totalBC;
-
-  const handleConfirm = async () => {
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    onConfirm(comment, heureArrivee, heureDepart); 
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-        backdropFilter: "blur(6px)", display: "flex", alignItems: "center",
-        justifyContent: "center", zIndex: 100, padding: 24,
-      }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 320, damping: 28 }}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(520px, 96vw)", background: "#ffffff",
-          borderRadius: 24, overflow: "hidden",
-          boxShadow: "0 40px 80px rgba(0,0,0,0.2)",
-          maxHeight: "92vh", overflowY: "auto",
-        }}
-      >
-        {/* Red top bar */}
-        <div style={{ height: 4, background: "linear-gradient(90deg, #dc2626, #b91c1c)" }} />
-
-        <div style={{ padding: "32px 36px 36px" }}>
-          <h2 style={{ fontSize: "1.35rem", fontWeight: 900, color: "#111827", letterSpacing: "-0.03em", marginBottom: 4 }}>
-            Clôturer la session
-          </h2>
-          <p style={{ fontSize: "0.85rem", color: "#9ca3af", marginBottom: 24 }}>
-            Vérifiez les heures et les totaux avant de vous déconnecter
-          </p>
-
-          {/* ── Vérification des heures ── */}
-          <div style={{ background: "#f9fafb", border: "1.5px solid #e5e7eb", borderRadius: 14, padding: "16px 18px", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14 }}>
-              <Clock style={{ width: 14, height: 14, color: "#6b7280" }} />
-              <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                Vérification des heures
-              </span>
-              <span style={{ marginLeft: "auto", fontSize: "0.7rem", color: "#9ca3af", fontWeight: 500 }}>
-                Modifiez si nécessaire
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <label style={{ fontSize: "0.7rem", fontWeight: 600, color: "#9ca3af", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Heure d'arrivée
-                </label>
-                <input
-                  type="time"
-                  value={heureArrivee}
-                  onChange={(e) => setHeureArrivee(e.target.value)}
-                  style={{
-                    width: "100%", background: "white", border: "2px solid #e5e7eb",
-                    borderRadius: 10, padding: "10px 12px", fontSize: "1.1rem",
-                    fontWeight: 800, color: "#111827", outline: "none", fontFamily: "inherit",
-                    letterSpacing: "-0.01em",
-                  }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: "0.7rem", fontWeight: 600, color: "#9ca3af", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Heure de départ
-                </label>
-                <input
-                  type="time"
-                  value={heureDepart}
-                  onChange={(e) => setHeureDepart(e.target.value)}
-                  style={{
-                    width: "100%", background: "white", border: "2px solid #e5e7eb",
-                    borderRadius: 10, padding: "10px 12px", fontSize: "1.1rem",
-                    fontWeight: 800, color: "#111827", outline: "none", fontFamily: "inherit",
-                    letterSpacing: "-0.01em",
-                  }}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Summary boxes */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-            <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 14, padding: "16px 18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
-                <Banknote style={{ width: 15, height: 15, color: "#16a34a" }} />
-                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#15803d", textTransform: "uppercase", letterSpacing: "0.07em" }}>Espèces</span>
-              </div>
-              <p style={{ fontSize: "1.7rem", fontWeight: 900, color: "#15803d", letterSpacing: "-0.04em" }}>
-                {fmtCurrency(totalCash)}
-              </p>
-            </div>
-            <div style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: 14, padding: "16px 18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
-                <CreditCard style={{ width: 15, height: 15, color: "#2563eb" }} />
-                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Bancontact</span>
-              </div>
-              <p style={{ fontSize: "1.7rem", fontWeight: 900, color: "#1d4ed8", letterSpacing: "-0.04em" }}>
-                {fmtCurrency(totalBC)}
-              </p>
-            </div>
-          </div>
-
-          {/* Total */}
-          <div style={{ background: "#111827", borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-            <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
-              Total session ({entries.length} client{entries.length > 1 ? "s" : ""})
-            </span>
-            <span style={{ fontSize: "1.8rem", fontWeight: 900, color: "white", letterSpacing: "-0.04em" }}>
-              {fmtCurrency(total)}
-            </span>
-          </div>
-
-          {/* Comment */}
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <MessageSquare style={{ width: 13, height: 13 }} />
-              Commentaire <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optionnel)</span>
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Remarques sur la session…"
-              rows={2}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setFocused(false)}
-              style={{
-                width: "100%", background: "#f9fafb", fontFamily: "inherit",
-                border: `2px solid ${focused ? "#dc2626" : "#e5e7eb"}`,
-                borderRadius: 12, padding: "12px 14px", fontSize: "0.9rem",
-                color: "#374151", resize: "none", outline: "none",
-                boxShadow: focused ? "0 0 0 3px rgba(220,38,38,0.1)" : "none",
-                transition: "border-color 0.2s, box-shadow 0.2s",
-              }}
-            />
-          </div>
-
-          {/* Buttons */}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={onClose}
-              style={{
-                flex: 1, height: 52, borderRadius: 12,
-                border: "2px solid #e5e7eb", background: "white",
-                cursor: "pointer", fontWeight: 600, color: "#6b7280", fontSize: "0.9rem",
-              }}
-            >
-              Annuler
-            </button>
-            <motion.button
-              onClick={handleConfirm}
-              disabled={loading}
-              whileHover={!loading ? { scale: 1.02 } : {}}
-              whileTap={!loading ? { scale: 0.98 } : {}}
-              style={{
-                flex: 2, height: 52, borderRadius: 12, border: "none",
-                background: loading ? "#16a34a" : "linear-gradient(135deg, #22c55e, #15803d)",
-                color: "white", fontWeight: 800, fontSize: "0.95rem",
-                cursor: loading ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                boxShadow: "0 6px 20px rgba(22,163,74,0.3)",
-              }}
-            >
-              {loading ? <Loader2 style={{ width: 18, height: 18, animation: "spin 1s linear infinite" }} /> : <CheckCircle2 style={{ width: 18, height: 18 }} />}
-              {loading ? "Enregistrement…" : "Valider et se déconnecter"}
-            </motion.button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
 }
 
 /* ─── Main Page ──────────────────────────────────────────────────── */
@@ -821,7 +189,7 @@ export function JobisteCheckoutForm() {
     try {
       if (navigator.onLine) {
         // SCÉNARIO A : INTERNET EST LÀ. On envoie direct à l'API !
-        const res = await fetch("http://localhost:3000/api/shifts/close", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/shifts/close`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)

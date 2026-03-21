@@ -196,3 +196,27 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - Résultat : La boucle de résilience est désormais parfaite. Les données sont sauvegardées localement en cas de coupure, et dépilées silencieusement en arrière-plan dès le retour du réseau, peu importe l'écran actif.
 
 **Statut :** Issue #7 validée. L'application est installable et 100% tolérante aux pannes réseau.
+
+## Clôture de l'Issue #8 : [PWA] Exports Comptables (CSV & PDF)
+
+**Objectif :** Permettre à la direction et à la comptabilité d'exporter facilement les données financières des shifts validés.
+
+**Réalisations techniques :**
+- **Exports CSV :** Création d'un script natif générant un fichier `.csv` (format Excel) à partir des données JSON, utilisant un `Blob` et une balise `<a>` dynamique pour forcer le téléchargement.
+- **Exports PDF :** Intégration des librairies `jspdf` et `jspdf-autotable` pour générer un rapport PDF stylisé côté client (sans surcharger le backend).
+- **Liaison Dynamique (React) :** Les exports sont connectés au filtre global du Dashboard (`filteredShifts`). Le fichier exporté correspond toujours exactement à la vue active (ex: un jour précis ou l'historique complet).
+- **Persistance des paramètres :** Utilisation du `localStorage` pour sauvegarder les informations du centre (Nom, Adresse, Email) et injection dynamique de ces données dans l'en-tête du document PDF généré.
+
+**Statut :** Issue #8 validée. Les outils comptables sont 100% opérationnels.
+
+## Clôture de l'Issue #9 : [PWA] Variables d'environnement & Refactoring
+
+**Objectif :** Préparer l'application pour le déploiement en production en dynamisant les appels API, et assainir la base de code en découpant les composants trop volumineux ("God Components").
+
+**Réalisations techniques :**
+- **Variables d'Environnement :** Création du fichier `.env` global et remplacement de toutes les URLs backend codées en dur (`http://localhost:3000`) par la variable Vite `import.meta.env.VITE_API_URL` à travers toute l'application.
+- **Refactoring du Dashboard (`DirectorDashboard.tsx`) :** Extraction de la logique des paramètres (`SettingsTab`) et de la gestion RH/Modales (`JobistesTab`) vers de nouveaux composants isolés dans `src/components/dashboard/`. Le fichier principal a été allégé de plus de 50%.
+- **Refactoring de la Caisse (`JobisteCheckoutForm.tsx`) :** Extraction des 3 modales complexes (`AddEntryModal`, `ChecklistModal`, `ClotureModal`) vers le dossier `src/components/checkout/`.
+- **Fix TypeScript (Build) :** Résolution des erreurs de compilation Vite/Rollup liées à l'import d'interfaces (`Entry`, `ChecklistItem`) en utilisant explicitement la syntaxe `import type`, garantissant un bundle JavaScript final propre.
+
+**Statut :** Issue #9 validée. La dette technique est remboursée, le code est désormais modulaire, maintenable et prêt pour les environnements de production.
