@@ -220,3 +220,19 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Fix TypeScript (Build) :** Résolution des erreurs de compilation Vite/Rollup liées à l'import d'interfaces (`Entry`, `ChecklistItem`) en utilisant explicitement la syntaxe `import type`, garantissant un bundle JavaScript final propre.
 
 **Statut :** Issue #9 validée. La dette technique est remboursée, le code est désormais modulaire, maintenable et prêt pour les environnements de production.
+
+## Clôture de l'Issue #10 : [Dashboard] Synchronisation Temps Réel (WebSockets)
+
+**Objectif :** Permettre au tableau de bord de la direction de s'actualiser en direct, sans action de l'utilisateur, dès qu'un shift est clôturé sur le Kiosque.
+
+**Réalisations techniques :**
+- **Backend (Node.js/Express) :** Utilisation d'un middleware pour injecter l'instance `Socket.io` (`req.io = io`) dans toutes les requêtes HTTP. Ajout de l'événement `req.io.emit("shift_closed")` à la fin de la transaction SQL de clôture de caisse (`shiftController.js`).
+- **Frontend (React) :** Intégration de `socket.io-client` dans le composant `DirectorDashboard.tsx`. Création d'un écouteur WebSocket (`socket.on("shift_closed")`) qui déclenche silencieusement la fonction `fetchShifts()` en arrière-plan.
+- **Résultat :** Une expérience utilisateur fluide et "Software-like". Les graphiques, les KPIs et les tableaux financiers se mettent à jour en temps réel à la seconde où un jobiste valide sa caisse à l'accueil du complexe sportif.
+
+**Statut :** Issue #10 validée. Le système est désormais totalement réactif.
+
+## ATTENTION : 
+
+- Ne pas oublié d'optimiser la page jobiste pour le fluidité
+- Faire en sorte que dans le dormulaire etudiant on ajoute des conditions par exemple si le shift durait de 10h46 a 12h46 donc deux heures, il est impossible qu'un client ai fait 3h d'activité etc
