@@ -60,6 +60,13 @@ exports.closeShift = async (req, res) => {
             report: reportResult.rows[0],
             transactions_saved: transactions ? transactions.length : 0
         });
+        
+        if (req.io) {
+            req.io.emit("shift_closed");
+            console.log("📡 Signal 'shift_closed' envoyé au Dashboard !");
+        } else {
+            console.warn("⚠️ Socket.io n'est pas attaché à la requête");
+        }
 
     } catch (error) {
         // EN CAS D'ERREUR (Crash serveur, doublon, problème réseau) : ON ANNULE TOUT !

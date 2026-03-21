@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
+import { io } from "socket.io-client";
 import { SettingsTab } from "../components/dashboard/SettingsTab";
 import { JobistesTab } from "../components/dashboard/JobistesTab";
 import {
@@ -310,52 +311,62 @@ export function DirectorDashboard() {
   const [loading, setLoading] = useState(true);   // 👈 Pour afficher un chargement
   const navigate = useNavigate();
   
-// 🔴 Le fameux fetch sécurisé
-  useEffect(() => {
-    const fetchShifts = async () => {
-      const token = localStorage.getItem("adminToken");
-      if (!token) {
+  
+  // 1. On sépare la fonction de chargement pour pouvoir l'appeler à la demande
+  const fetchShifts = async () => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      navigate("/admin/login");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/shifts`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const formattedData = data.map((shift: any) => ({
+            ...shift,
+            heures: Number(shift.heures),
+            attendu: Number(shift.attendu),
+            reel: Number(shift.reel),
+            ecart: Number(shift.ecart)
+        }));
+        setShifts(formattedData);
+      } else if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("adminToken");
         navigate("/admin/login");
-        return;
       }
+    } catch (error) {
+      console.error("Erreur de connexion à l'API :", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      try {
-        // On fait l'appel vers ton vrai backend avec le JWT dans le Header !
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/shifts`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          
-          // 🛠️ ON CONVERTIT LES CHAINES EN NOMBRES POUR JAVASCRIPT
-          const formattedData = data.map((shift: any) => ({
-              ...shift,
-              heures: Number(shift.heures),
-              attendu: Number(shift.attendu),
-              reel: Number(shift.reel),
-              ecart: Number(shift.ecart)
-          }));
-
-          setShifts(formattedData); // On injecte les données converties !
-        } else if (response.status === 401 || response.status === 403) {
-          // Si le token est expiré ou invalide, on le jette dehors
-          localStorage.removeItem("adminToken");
-          navigate("/admin/login");
-        }
-      } catch (error) {
-        console.error("Erreur de connexion à l'API :", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  // 2. Le useEffect qui lance le chargement ET écoute le WebSocket
+  useEffect(() => {
+    // A. On charge les données tout de suite au démarrage
     fetchShifts();
+
+    // B. 🔌 Connexion WebSocket pour le Temps Réel !
+    const socket = io(import.meta.env.VITE_API_URL);
+
+    // Quand le backend crie "shift_closed"
+    socket.on("shift_closed", () => {
+      console.log("🔄 Nouvelle clôture détectée ! Mise à jour du Dashboard...");
+      fetchShifts(); // On recharge les données silencieusement en arrière-plan
+    });
+
+    // Nettoyage quand on quitte la page
+    return () => {
+      socket.disconnect();
+    };
   }, [navigate]);
 
-// 1. ON VÉRIFIE D'ABORD SI ÇA CHARGE (On bloque le rendu ici si besoin)
+  // 1. ON VÉRIFIE D'ABORD SI ÇA CHARGE (On bloque le rendu ici si besoin)
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] text-gray-500 font-bold">Chargement des données sécurisées...</div>;
   }
