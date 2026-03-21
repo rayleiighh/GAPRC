@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   LayoutDashboard, Users, Settings, LogOut,
   TrendingDown, TrendingUp, Minus, AlertTriangle,
@@ -221,9 +223,14 @@ function JobisteDetailModal({ jobisteName, shifts, onClose }:
 
 /* ─── Calendar View ──────────────────────────────────────────────── */
 function CalendarView({ shifts }: { shifts: any[] }) {
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(2); // 0-indexed: 2 = March
-  const [selectedDay, setSelectedDay] = useState<string | null>("2026-03-10");
+  // On calcule la date du jour
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  // On initialise le calendrier sur le mois et l'année en cours
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth()); 
+  const [selectedDay, setSelectedDay] = useState<string | null>(todayStr);
 
   const DAYS_FR = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
   const MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -248,7 +255,9 @@ function CalendarView({ shifts }: { shifts: any[] }) {
   };
 
   const selectedShifts = selectedDay ? shifts.filter(s => s.date === selectedDay) : [];
-  const today = "2026-03-12";
+  
+  // On utilise la vraie date calculée plus haut
+  const today = todayStr;
 
   const cells: (number | null)[] = [
     ...Array(firstDayMon).fill(null),
@@ -671,9 +680,10 @@ function JobistesTab({ shifts }: { shifts: any[] }) {
   );
 }
 
-/* ─── Settings Tab ───────────────────────────────────────────────── */
-function SettingsTab() {
+/* ─── Settings Tab───────────────────────────── */
+function SettingsTab({ shifts }: { shifts: any[] }) {
   const [saved, setSaved] = useState(false);
+  
   const [centerName, setCenterName] = useState("Sports Center Bruxelles");
   const [address, setAddress] = useState("Rue du Sport 42, 1000 Bruxelles");
   const [adminEmail, setAdminEmail] = useState("direction@sportscenter.be");
@@ -686,17 +696,66 @@ function SettingsTab() {
     setTimeout(() => setSaved(false), 2500);
   };
 
+  // LOGIQUE D'EXPORT CSV
+  const exportCSV = () => {
+    if (shifts.length === 0) return alert("Aucune donnée à exporter.");
+    const headers = ["ID", "Date", "Jobiste", "Arrivee", "Depart", "Attendu", "Reel", "Ecart"];
+    const rows = shifts.map(s => [
+      s.id, s.date, s.jobiste, s.arrivee, s.depart,
+      s.attendu.toFixed(2), s.reel.toFixed(2), s.ecart.toFixed(2)
+    ]);
+    const csvContent = [headers.join(";"), ...rows.map(e => e.join(";"))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `export_caisse_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // LOGIQUE D'EXPORT PDF
+  const exportPDF = () => {
+    if (shifts.length === 0) return alert("Aucune donnée à exporter.");
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Rapport Comptable - Sports Center", 14, 22);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Généré le : ${new Date().toLocaleDateString('fr-BE')}`, 14, 30);
+
+    const totalAttendu = shifts.reduce((s, j) => s + j.attendu, 0);
+    const totalReel = shifts.reduce((s, j) => s + j.reel, 0);
+    const totalEcart = shifts.reduce((s, j) => s + j.ecart, 0);
+
+    const tableData = shifts.map(s => [
+      s.date, s.jobiste, `${s.arrivee} - ${s.depart}`,
+      `${s.attendu.toFixed(2)} €`, `${s.reel.toFixed(2)} €`,
+      `${s.ecart > 0 ? '+' : ''}${s.ecart.toFixed(2)} €`
+    ]);
+
+    autoTable(doc, {
+      startY: 38,
+      head: [['Date', 'Jobiste', 'Horaire', 'Attendu', 'Réel', 'Écart']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [220, 38, 38] },
+      foot: [['', '', 'TOTAUX', `${totalAttendu.toFixed(2)} €`, `${totalReel.toFixed(2)} €`, `${totalEcart > 0 ? '+' : ''}${totalEcart.toFixed(2)} €`]],
+      footStyles: { fillColor: [24, 24, 27], fontStyle: 'bold' }
+    });
+    doc.save(`Rapport_SportsCenter_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const inputStyle: React.CSSProperties = {
     width: "100%", background: "#f9fafb", border: "2px solid #e5e7eb", borderRadius: 12,
     padding: "12px 16px", fontSize: "0.9rem", color: "#111827", outline: "none", fontFamily: "inherit",
   };
 
   const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
-    <div style={{ background: "white", borderRadius: 20, overflow: "hidden",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)" }}>
+    <div style={{ background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)" }}>
       <div style={{ padding: "18px 28px", borderBottom: "1px solid #f4f4f5", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: "#f3f4f6",
-          display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Icon style={{ width: 15, height: 15, color: "#6b7280" }} />
         </div>
         <h3 style={{ fontSize: "0.95rem", fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>{title}</h3>
@@ -706,17 +765,13 @@ function SettingsTab() {
   );
 
   const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0",
-      borderBottom: "1px solid #f9fafb" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid #f9fafb" }}>
       <div>
         <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#374151" }}>{label}</p>
         <p style={{ fontSize: "0.78rem", color: "#9ca3af", marginTop: 2 }}>{sub}</p>
       </div>
-      <button onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 99, border: "none",
-        background: value ? "#dc2626" : "#e5e7eb", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white",
-          position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }} />
+      <button onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 99, border: "none", background: value ? "#dc2626" : "#e5e7eb", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "white", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }} />
       </button>
     </div>
   );
@@ -724,19 +779,17 @@ function SettingsTab() {
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
       style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 680 }}>
+      
+      {/* SECTIONS PARAMETRES */}
       <Section title="Informations du centre" icon={Shield}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 8 }}>Nom du centre</label>
-            <input value={centerName} onChange={e => setCenterName(e.target.value)} style={inputStyle}
-              onFocus={e => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }} />
+            <input value={centerName} onChange={e => setCenterName(e.target.value)} style={inputStyle} />
           </div>
           <div>
             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 8 }}>Adresse</label>
-            <input value={address} onChange={e => setAddress(e.target.value)} style={inputStyle}
-              onFocus={e => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }} />
+            <input value={address} onChange={e => setAddress(e.target.value)} style={inputStyle} />
           </div>
         </div>
       </Section>
@@ -745,49 +798,34 @@ function SettingsTab() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 8 }}>Email direction</label>
-            <input value={adminEmail} onChange={e => setAdminEmail(e.target.value)} style={inputStyle}
-              onFocus={e => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }} />
+            <input value={adminEmail} onChange={e => setAdminEmail(e.target.value)} style={inputStyle} />
           </div>
           <div>
             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.07em", display: "block", marginBottom: 8 }}>Téléphone</label>
-            <input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} style={inputStyle}
-              onFocus={e => { e.currentTarget.style.borderColor = "#dc2626"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(220,38,38,0.1)"; }}
-              onBlur={e => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.boxShadow = "none"; }} />
+            <input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} style={inputStyle} />
           </div>
         </div>
       </Section>
 
       <Section title="Notifications" icon={Bell}>
-        <Toggle value={notifEcart} onChange={setNotifEcart}
-          label="Alertes écart de caisse" sub="Notifier quand un écart négatif est détecté à la clôture" />
-        <Toggle value={notifCloture} onChange={setNotifCloture}
-          label="Résumé de clôture" sub="Recevoir un récapitulatif par email à chaque clôture de shift" />
+        <Toggle value={notifEcart} onChange={setNotifEcart} label="Alertes écart de caisse" sub="Notifier quand un écart négatif est détecté à la clôture" />
+        <Toggle value={notifCloture} onChange={setNotifCloture} label="Résumé de clôture" sub="Recevoir un récapitulatif par email à chaque clôture de shift" />
       </Section>
 
-      <Section title="Données & export" icon={Database}>
+      {/* SECTION DES EXPORTS */}
+      <Section title="Données & export comptable" icon={Database}>
         <div style={{ display: "flex", gap: 12 }}>
-          <button style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: "1.5px solid #e5e7eb",
-            background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 8, fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
-            <Download style={{ width: 15, height: 15 }} />Export CSV (ce mois)
+          <button onClick={exportCSV} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
+            <Download style={{ width: 15, height: 15 }} />Export CSV (Excel)
           </button>
-          <button style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: "1.5px solid #e5e7eb",
-            background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 8, fontSize: "0.875rem", fontWeight: 600, color: "#374151" }}>
+          <button onClick={exportPDF} style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: "none", background: "#111827", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: "0.875rem", fontWeight: 600 }}>
             <FileText style={{ width: 15, height: 15 }} />Export rapport PDF
           </button>
         </div>
       </Section>
 
-      {/* Save button */}
       <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }} onClick={handleSave}
-        style={{ height: 52, borderRadius: 14, border: "none", cursor: "pointer",
-          background: saved ? "linear-gradient(135deg, #22c55e, #15803d)" : "linear-gradient(155deg, #dc2626, #b91c1c)",
-          color: "white", fontWeight: 800, fontSize: "0.95rem",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          boxShadow: saved ? "0 6px 20px rgba(22,163,74,0.3)" : "0 6px 20px rgba(220,38,38,0.28)",
-          transition: "background 0.3s, box-shadow 0.3s" }}>
+        style={{ height: 52, borderRadius: 14, border: "none", cursor: "pointer", background: saved ? "linear-gradient(135deg, #22c55e, #15803d)" : "linear-gradient(155deg, #dc2626, #b91c1c)", color: "white", fontWeight: 800, fontSize: "0.95rem", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
         {saved ? <CheckCircle2 style={{ width: 18, height: 18 }} /> : <Save style={{ width: 18, height: 18 }} />}
         {saved ? "Paramètres enregistrés !" : "Enregistrer les modifications"}
       </motion.button>
@@ -1110,7 +1148,7 @@ export function DirectorDashboard() {
           {activeTab === "calendrier" && <CalendarView shifts={shifts} />}
 
           {/* ─── SETTINGS TAB ─── */}
-          {activeTab === "settings" && <SettingsTab />}
+          {activeTab === "settings" && <SettingsTab shifts={filteredShifts} />}
         </div>
       </main>
     </div>
