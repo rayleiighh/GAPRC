@@ -235,4 +235,4 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 ## ATTENTION : 
 
 - Ne pas oublié d'optimiser la page jobiste pour le fluidité
-- Faire en sorte que dans le dormulaire etudiant on ajoute des conditions par exemple si le shift durait de 10h46 a 12h46 donc deux heures, il est impossible qu'un client ai fait 3h d'activité etc
+- Faire en sorte que dans le formulaire etudiant on ajoute des conditions par exemple si le shift durait de 10h46 a 12h46 donc deux heures, il est impossible qu'un client ai fait 3h d'activité etc
