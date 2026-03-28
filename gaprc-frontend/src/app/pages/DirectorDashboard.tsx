@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { io } from "socket.io-client";
 import { SettingsTab } from "../components/dashboard/SettingsTab";
+import { ShiftDetailsModal } from "../components/dashboard/ShiftDetailsModal";
 import { JobistesTab } from "../components/dashboard/JobistesTab";
 import {
   LayoutDashboard, Users, Settings, LogOut,
@@ -307,10 +308,13 @@ export function CalendarView({ shifts }: { shifts: any[] }) {
 export function DirectorDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dateFilter, setDateFilter] = useState<string>("all");
-  const [shifts, setShifts] = useState<any[]>([]); // 👈 Nouvel état pour les vraies données
-  const [loading, setLoading] = useState(true);   // 👈 Pour afficher un chargement
-  const navigate = useNavigate();
+  const [shifts, setShifts] = useState<any[]>([]); 
+  const [loading, setLoading] = useState(true);   
   
+  // 🟢 NOUVEAU : L'état pour savoir quel shift on veut regarder en détail
+  const [selectedShiftForDetails, setSelectedShiftForDetails] = useState<any | null>(null); 
+  
+  const navigate = useNavigate();
   
   // 1. On sépare la fonction de chargement pour pouvoir l'appeler à la demande
   const fetchShifts = async () => {
@@ -348,30 +352,23 @@ export function DirectorDashboard() {
 
   // 2. Le useEffect qui lance le chargement ET écoute le WebSocket
   useEffect(() => {
-    // A. On charge les données tout de suite au démarrage
     fetchShifts();
-
-    // B. 🔌 Connexion WebSocket pour le Temps Réel !
     const socket = io(import.meta.env.VITE_API_URL);
 
-    // Quand le backend crie "shift_closed"
     socket.on("shift_closed", () => {
       console.log("🔄 Nouvelle clôture détectée ! Mise à jour du Dashboard...");
-      fetchShifts(); // On recharge les données silencieusement en arrière-plan
+      fetchShifts(); 
     });
 
-    // Nettoyage quand on quitte la page
     return () => {
       socket.disconnect();
     };
   }, [navigate]);
 
-  // 1. ON VÉRIFIE D'ABORD SI ÇA CHARGE (On bloque le rendu ici si besoin)
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] text-gray-500 font-bold">Chargement des données sécurisées...</div>;
   }
 
-  // 2. ENSUITE SEULEMENT, ON FAIT LES CALCULS (Car on est sûr d'avoir les données)
   const uniqueDates = [...new Set(shifts.map(s => s.date))].sort((a, b) => b.localeCompare(a));
 
   const filteredShifts = dateFilter === "all"
@@ -445,10 +442,8 @@ export function DirectorDashboard() {
             <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4ade80" }}>En ligne</span>
           </div>
           <button onClick={() => {
-            // 1. On supprime les traces dans le navigateur
             localStorage.removeItem("adminToken");
             localStorage.removeItem("adminUser");
-            // 2. On redirige vers l'accueil
             navigate("/");
             }} 
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 10, border: "none", cursor: "pointer", background: "transparent", color: "#52525b", fontSize: "0.875rem", fontWeight: 500 }}
@@ -562,9 +557,18 @@ export function DirectorDashboard() {
                   return (
                     <motion.div key={shift.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.03 + idx * 0.03, duration: 0.3 }}
+                      
+                      // 🟢 NOUVEAU : On rend la ligne cliquable
+                      onClick={() => setSelectedShiftForDetails(shift)} 
+                      whileHover={{ backgroundColor: "#f9fafb" }}
+                      
                       style={{ display: "grid", gridTemplateColumns: tableColumns, padding: "16px 28px",
                         alignItems: "center", borderBottom: isLast ? "none" : "1px solid #f4f4f5",
-                        background: isNeg ? "#fff8f8" : "transparent", position: "relative" }}>
+                        background: isNeg ? "#fff8f8" : "transparent", position: "relative",
+                        
+                        // 🟢 NOUVEAU : Petit curseur pour montrer qu'on peut cliquer
+                        cursor: "pointer" }}>
+                        
                       {isNeg && (
                         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
                           background: "#dc2626", borderRadius: "0 2px 2px 0" }} />
@@ -629,6 +633,17 @@ export function DirectorDashboard() {
 
           {/* ─── SETTINGS TAB ─── */}
           {activeTab === "settings" && <SettingsTab shifts={filteredShifts} />}
+
+          {/* 🟢 NOUVEAU : MODALE DÉTAILS SHIFT */}
+          <AnimatePresence>
+            {selectedShiftForDetails && (
+              <ShiftDetailsModal 
+                shift={selectedShiftForDetails} 
+                onClose={() => setSelectedShiftForDetails(null)} 
+              />
+            )}
+          </AnimatePresence>
+
         </div>
       </main>
     </div>

@@ -244,6 +244,22 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Issue #11 validée. Les formulaires sont plus robustes et les données sont formatées proprement pour le Dashboard.
 
+## Clôture de l'Issue #12 : [Dashboard] Vue détaillée des transactions d'un shift (Audit)
+
+**Objectif :** Offrir à la direction un outil d'audit approfondi permettant de visualiser le détail exact de chaque caisse clôturée (liste des clients, sports pratiqués, durée, paiements, et commentaires éventuels du jobiste).
+
+**Réalisations techniques :**
+- **Base de données (`database/init`) :** - Mise à jour du fichier `01-schema.sql` : Ajout de la colonne `comment` (TEXT) dans la table `shifts`. 
+  - Modification du type de la colonne `duration` (de INT vers VARCHAR) dans la table `shift_transactions` pour correspondre au nouveau standard du Kiosque (Issue 11).
+  - Ajout de la contrainte `UNIQUE` sur `local_id` pour la sécurité hors-ligne (PWA).
+  - Mise à jour des fausses données (`02-seed.sql`) pour refléter ces nouveaux formats.
+- **Backend (Node.js) :** - Modification du contrôleur `closeShift` pour sauvegarder le commentaire en DB.
+  - Création de la route `GET /api/shifts/:id/details` pour regrouper les infos du shift et ses transactions associées.
+- **Frontend (React) :** - Création de la modale dynamique `ShiftDetailsModal.tsx`.
+  - Rendu des lignes du tableau de bord (`DirectorDashboard.tsx`) interactives (cliquables) pour déclencher l'ouverture de la modale d'audit.
+
+**Statut :** Issue #12 validée. Le dashboard offre désormais une traçabilité financière et opérationnelle totale.
+
 ## ATTENTION : 
 
 - Ne pas oublié d'optimiser la page jobiste pour le fluidité

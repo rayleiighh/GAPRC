@@ -42,14 +42,15 @@ exports.closeShift = async (req, res) => {
         `;
         const reportResult = await client.query(reportQuery, [shift_id, expected_amount, actual_amount]);
 
-        // Fermeture officielle du shift (On insère les heures locales pures, sans conversion !)
+        // Fermeture officielle du shift (On insère les heures et le commentaire)
         const closeShiftQuery = `
             UPDATE shifts 
             SET start_time = $2, 
-                end_time = $3 
+                end_time = $3,
+                comment = $4
             WHERE id = $1;
         `;
-        await client.query(closeShiftQuery, [shift_id, start_time, end_time]);
+        await client.query(closeShiftQuery, [shift_id, start_time, end_time, comment]);
 
         // FIN DE LA TRANSACTION SQL : On valide tout (CA5)
         await client.query('COMMIT');
@@ -118,5 +119,31 @@ exports.getAllShifts = async (req, res) => {
     } catch (error) {
         console.error('Erreur getAllShifts:', error);
         res.status(500).json({ error: 'Erreur lors de la récupération des shifts' });
+    }
+};
+
+// GET /api/shifts/:id/details
+exports.getShiftDetails = async (req, res) => {
+    const { id } = req.params;
+    try {
+        // 1. Récupérer le commentaire éventuel laissé par le jobiste
+        const shiftResult = await pool.query('SELECT comment FROM shifts WHERE id = $1', [id]);
+        const comment = shiftResult.rows[0]?.comment || "";
+
+        // 2. Récupérer toutes les transactions de ce shift
+        const txResult = await pool.query(`
+            SELECT client_name, sport, duration, amount_cash, amount_card 
+            FROM shift_transactions 
+            WHERE shift_id = $1 
+            ORDER BY id ASC
+        `, [id]);
+        
+        res.status(200).json({
+            comment,
+            transactions: txResult.rows
+        });
+    } catch (error) {
+        console.error('Erreur getShiftDetails:', error);
+        res.status(500).json({ error: 'Erreur lors de la récupération des détails' });
     }
 };

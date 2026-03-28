@@ -24,6 +24,7 @@ CREATE TABLE shifts (
     user_id INT NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP, -- Peut être NULL tant que le shift n'est pas terminé
+    comment TEXT,       -- NOUVEAU : Ajout du commentaire de clôture (Issue 12)
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -44,10 +45,10 @@ CREATE TABLE shift_transactions (
     shift_id INT NOT NULL,
     client_name VARCHAR(100) NOT NULL,
     sport VARCHAR(50) NOT NULL,
-    duration INT NOT NULL, -- en minutes
+    duration VARCHAR(50) NOT NULL, -- NOUVEAU : Changé en VARCHAR pour stocker "1h", "1h30", etc. (Issue 11)
     amount_cash DECIMAL(10, 2) DEFAULT 0.00,
     amount_card DECIMAL(10, 2) DEFAULT 0.00,
-    local_id VARCHAR(100) UNIQUE, -- Crucial pour l'Offline-First (PWA) ! Évite les doublons à la reconnexion.
+    local_id VARCHAR(255) UNIQUE,  -- NOUVEAU : UNIQUE garanti pour l'idempotence PWA
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE
 );
