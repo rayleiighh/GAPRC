@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { AddEntryModal } from "../components/checkout/AddEntryModal";
 import { ChecklistModal } from "../components/checkout/ChecklistModal";
+import { ExitWarningModal } from "../components/checkout/ExitWarningModal";
 import { ClotureModal } from "../components/checkout/ClotureModal";
 import {
   Plus, Trash2, CheckCircle2, ChevronLeft,
@@ -94,6 +95,7 @@ export function JobisteCheckoutForm() {
   const [showAdd, setShowAdd] = useState(false);
   const [showCloture, setShowCloture] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [startTimeStr, setStartTimeStr] = useState(() => {
     const now = new Date();
@@ -257,7 +259,7 @@ export function JobisteCheckoutForm() {
         {/* Left */}
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => setShowExitWarning(true)}
             style={{ width: 34, height: 34, borderRadius: 9, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
             <ChevronLeft style={{ width: 16, height: 16, color: "#374151" }} />
@@ -633,6 +635,16 @@ export function JobisteCheckoutForm() {
             checklist={checklist}
             onToggle={toggleChecklistItem}
             onClose={() => setShowChecklist(false)}
+          />
+        )}
+        {showExitWarning && (
+          <ExitWarningModal
+            onClose={() => setShowExitWarning(false)}
+            onLeave={() => navigate("/")}
+            onCloture={() => {
+              setShowExitWarning(false);
+              setShowCloture(true);
+            }}
           />
         )}
       </AnimatePresence>

@@ -260,6 +260,17 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Issue #12 validée. Le dashboard offre désormais une traçabilité financière et opérationnelle totale.
 
+## Clôture de l'Issue #13 : [Kiosque] Sécurité de navigation et prévention de perte de données
+
+**Objectif :** Protéger le travail en cours des jobistes en empêchant la fermeture accidentelle de l'écran de caisse (ce qui entraînerait la perte des transactions non clôturées).
+
+**Réalisations techniques :**
+- **Composant UI (`ExitWarningModal.tsx`) :** Création d'une modale d'alerte spécifique avec une interface claire (icône de danger, boutons d'actions distincts).
+- **Interception de la navigation (`JobisteCheckoutForm.tsx`) :** Modification du comportement du bouton "Retour" (`ChevronLeft`). Au lieu d'exécuter un `Maps("/")` immédiat, il déclenche désormais l'affichage de l'avertissement.
+- **Redirection intelligente :** L'utilisateur a le choix de forcer la sortie (perte assumée), d'annuler son action, ou d'être redirigé directement vers l'écran de clôture pour sauvegarder son travail proprement.
+
+**Statut :** Issue #13 validée. La caisse est sécurisée contre les erreurs de manipulation.
+
 ## ATTENTION : 
 
 - Ne pas oublié d'optimiser la page jobiste pour le fluidité
