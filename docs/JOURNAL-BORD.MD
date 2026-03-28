@@ -232,7 +232,22 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Issue #10 validée. Le système est désormais totalement réactif.
 
+
+
+## Clôture de l'Issue #11 : [Kiosque] Robustesse des formulaires (Standardisation des données)
+
+**Objectif :** Améliorer la qualité et la fiabilité des données entrées par les jobistes lors de l'ajout d'un client, tout en respectant la réalité du terrain (cas d'usage métier).
+
+**Réalisations techniques :**
+- **Refactoring UI (`AddEntryModal.tsx`) :** Transformation du champ "Durée" (précédemment en texte libre) en un menu déroulant strict (`<select>`). Cela garantit que la base de données ne reçoit que des formats standardisés ("1h", "1h30", "2h", etc.), ce qui est indispensable pour la future génération de statistiques.
+- **Ajustement des règles métiers :** Suite à une analyse d'utilisation réelle (les clients paient souvent *avant* de jouer), la restriction temporelle bloquante a été écartée. Un jobiste peut légitimement encaisser une session de 3h même s'il vient tout juste de commencer son shift.
+
+**Statut :** Issue #11 validée. Les formulaires sont plus robustes et les données sont formatées proprement pour le Dashboard.
+
 ## ATTENTION : 
 
 - Ne pas oublié d'optimiser la page jobiste pour le fluidité
-- Faire en sorte que dans le formulaire etudiant on ajoute des conditions par exemple si le shift durait de 10h46 a 12h46 donc deux heures, il est impossible qu'un client ai fait 3h d'activité etc
+- Faire en sorte que dans le formulaire etudiant on ajoute des conditions par exemple si le shift durait de 10h46 a 12h46 donc deux heures, il est impossible qu'un client ai fait 3h d'activité etc (en gros faire des conditions dans les formulaires pour la robustesse)
+
+
+
