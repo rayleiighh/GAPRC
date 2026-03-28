@@ -271,6 +271,18 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Issue #13 validée. La caisse est sécurisée contre les erreurs de manipulation.
 
+## Clôture de l'Issue #14 : [Backend/Hardware] Unicité du shift et protection contre les conflits de badges
+
+**Objectif :** Garantir l'intégrité de la base de données en s'assurant qu'une seule caisse (shift) est ouverte à la fois physiquement sur le terminal Kiosque, évitant ainsi les chevauchements de sessions.
+
+**Réalisations techniques :**
+- **Logique Serveur (`scanController.js`) :** Mise à jour majeure de la route d'authentification RFID (`processNfcScan`). Le serveur vérifie désormais globalement s'il existe un shift avec `end_time IS NULL`.
+- **Gestion de la reprise de session (Resume) :** Si l'utilisateur qui badge est déjà le propriétaire du shift en cours, le serveur lui accorde l'accès (HTTP 200) sans recréer de shift, permettant une reprise fluide après une mise en veille ou une erreur de navigation.
+- **Prévention des conflits (Concurrency) :** Si un utilisateur tente de badger alors qu'un shift appartient à un collègue, la requête est formellement rejetée (HTTP 403 Forbidden). 
+- **Préparation Hardware :** Le backend renvoie un payload d'erreur structuré (`{"error": "CAISSE_OCCUPEE", "message": "Caisse occupée par X"}`). L'ESP32 pourra parser ce JSON pour afficher l'alerte physiquement sur l'écran OLED.
+
+**Statut :** Issue #14 validée. Le Kiosque gère parfaitement la concurrence matérielle et logicielle.
+
 ## ATTENTION : 
 
 - Ne pas oublié d'optimiser la page jobiste pour le fluidité

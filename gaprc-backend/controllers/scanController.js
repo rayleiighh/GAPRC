@@ -9,66 +9,94 @@ const processNfcScan = async (req, res) => {
     }
 
     try {
-        // CA2 : Requête paramétrée ($1) pour éviter les injections SQL
+        // CA2 : Requête paramétrée pour trouver l'utilisateur du badge
         const badgeQuery = `
-            SELECT b.id AS badge_id, u.id AS user_id, u.first_name, u.last_name, u.role
+            SELECT b.id AS badge_id, u.id AS user_id, u.first_name, u.last_name, b.is_active
             FROM badges b
             JOIN users u ON b.user_id = u.id
-            WHERE b.nfc_uid = $1 AND b.is_active = TRUE
+            WHERE b.nfc_uid = $1
         `;
         const { rows: badgeRows } = await db.query(badgeQuery, [nfc_uid]);
 
-        // CA3 : Si le badge est inconnu ou inactif
+        // CA3 : Si le badge est inconnu
         if (badgeRows.length === 0) {
-            return res.status(404).json({ error: "Badge inconnu ou inactif." });
+            return res.status(404).json({ error: "Badge inconnu ou non assigné." });
         }
 
         const user = badgeRows[0];
+        
+        // Vérification si le badge est désactivé
+        if (!user.is_active) {
+            return res.status(403).json({ error: "Ce badge a été désactivé." });
+        }
+
         const fullName = `${user.first_name} ${user.last_name}`;
 
-        // CA4 : Vérifier s'il y a un shift en cours (end_time IS NULL)
+        // 🚨 NOUVEAU (Issue 14) : On cherche s'il y a N'IMPORTE QUEL shift en cours (Globalement)
         const openShiftQuery = `
-            SELECT id FROM shifts
-            WHERE user_id = $1 AND end_time IS NULL
+            SELECT s.id, s.user_id, u.first_name, u.last_name
+            FROM shifts s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.end_time IS NULL
         `;
-        const { rows: shiftRows } = await db.query(openShiftQuery, [user.user_id]);
+        const { rows: shiftRows } = await db.query(openShiftQuery);
 
+        // Si une caisse est actuellement ouverte
         if (shiftRows.length > 0) {
-            // SCÉNARIO A : UN SHIFT EST DÉJÀ OUVERT !
-            // Le jobiste a badgé une deuxième fois. Dans ton flux TFE, ça veut dire 
-            // qu'il veut "rouvrir" l'écran de caisse en cours.
-            const shiftId = shiftRows[0].id;
-            
-            // 🪄 MAGIE TEMPS RÉEL (CA2 de l'Issue 2) : On déverrouille le kiosque
-            req.io.emit('unlock_session', {
-                action: 'resume', // Indique que c'est une reprise
-                jobisteName: fullName,
-                shift_id: shiftId
-            });
+            const openShift = shiftRows[0];
 
-            return res.status(200).json({
-                message: `Session reprise pour ${user.first_name}.`,
-                action: 'resume',
-                user: { first_name: user.first_name, last_name: user.last_name }
-            });
+            // SCÉNARIO A : C'est le BON jobiste (Il reprend sa caisse)
+            if (openShift.user_id === user.user_id) {
+                const shiftId = openShift.id;
+                console.log(`[SCAN] ${fullName} reprend son shift #${shiftId}`);
+                
+                // 🪄 MAGIE TEMPS RÉEL : On déverrouille le kiosque
+                if (req.io) {
+                    req.io.emit('unlock_session', {
+                        action: 'resume', 
+                        jobisteName: fullName,
+                        shift_id: shiftId
+                    });
+                }
+
+                return res.status(200).json({
+                    message: `Session reprise pour ${user.first_name}.`,
+                    action: 'resume',
+                    shift_id: shiftId,
+                    user: { first_name: user.first_name, last_name: user.last_name }
+                });
+
+            } else {
+                // 🛑 SCÉNARIO B : CONFLIT ! Un autre jobiste essaie de badger
+                const occupantName = `${openShift.first_name} ${openShift.last_name}`;
+                console.warn(`[SCAN] Conflit : ${fullName} a badgé, mais la caisse est occupée par ${occupantName}`);
+                
+                // On bloque l'accès (HTTP 403)
+                return res.status(403).json({ 
+                    error: "CAISSE_OCCUPEE",
+                    message: `Caisse occupée par ${occupantName}`
+                });
+            }
 
         } else {
-            // SCÉNARIO B : PAS DE SHIFT OUVERT -> On en crée un nouveau (Check-in)
+            // SCÉNARIO C : PAS DE SHIFT OUVERT -> On en crée un nouveau (Check-in)
             const openNewShiftQuery = `
                 INSERT INTO shifts (user_id, start_time)
                 VALUES ($1, CURRENT_TIMESTAMP)
                 RETURNING id
             `;
-            // On récupère l'ID du shift nouvellement créé grâce au RETURNING id
             const newShiftResult = await db.query(openNewShiftQuery, [user.user_id]);
             const newShiftId = newShiftResult.rows[0].id;
+            console.log(`[SCAN] Nouveau shift #${newShiftId} ouvert pour ${fullName}`);
 
-            // 🪄 MAGIE TEMPS RÉEL (CA2 de l'Issue 2) : On déverrouille le kiosque
-            req.io.emit('unlock_session', {
-                action: 'checkin', // Nouveau shift
-                jobisteName: fullName,
-                shift_id: newShiftId
-            });
+            // 🪄 MAGIE TEMPS RÉEL : On déverrouille le kiosque
+            if (req.io) {
+                req.io.emit('unlock_session', {
+                    action: 'checkin',
+                    jobisteName: fullName,
+                    shift_id: newShiftId
+                });
+            }
 
             return res.status(200).json({
                 message: `Bonjour, ${user.first_name}. Début de shift enregistré.`,
