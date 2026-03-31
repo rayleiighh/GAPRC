@@ -283,10 +283,6 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Issue #14 validée. Le Kiosque gère parfaitement la concurrence matérielle et logicielle.
 
-## ATTENTION : 
-
-- Ne pas oublié d'optimiser la page jobiste pour le fluidité
-- Faire en sorte que dans le formulaire etudiant on ajoute des conditions par exemple si le shift durait de 10h46 a 12h46 donc deux heures, il est impossible qu'un client ai fait 3h d'activité etc (en gros faire des conditions dans les formulaires pour la robustesse)
 
 
 
