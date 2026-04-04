@@ -319,3 +319,20 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - Activation des `standardHeaders` pour informer le client du quota restant directement dans les en-têtes HTTP, respectant les normes RESTful.
 
 **Statut :** COULD-12 (#40) validée. Démonstration d'une approche "Security by Design". L'application gère activement les menaces réseau.
+
+## 🔵 COULD-13 [PWA] Visualisation de données — Graphiques de revenus (Recharts) (#41)
+
+**Objectif :** Rendre le tableau de bord de la direction plus visuel et professionnel en intégrant des outils de Business Intelligence (BI) permettant d'analyser d'un coup d'œil les tendances de rentabilité.
+
+**Technologies et Librairies utilisées :**
+- **React.js :** Architecture UI.
+- **`recharts` :** Librairie de dataviz robuste, basée sur D3.js et optimisée pour React.
+
+**Réalisations techniques :**
+- Création du composant `<RevenueChart />`.
+- **Traitement des données (`useMemo`) :** Création d'un algorithme agrégeant les montants de la liste des `shifts` bruts. Le code trie chronologiquement les données et fusionne les montants `attendu` et `reel` pour chaque journée (clé unique : "JJ/MM").
+- **Intégration UI :** Affichage d'un `AreaChart` (Graphique en aires) responsive, avec un système de calques SVG pour les dégradés d'opacité (`linearGradient`). 
+- **Interactivité :** Ajout d'un `Tooltip` personnalisé s'affichant au survol, formatant les devises dynamiquement.
+- **Liaison des états :** Le graphique écoute l'état `filteredShifts`, ce qui signifie qu'il se met à jour en temps réel selon les dates sélectionnées par le directeur et selon les WebSockets (clôture en direct d'un jobiste).
+
+**Statut :** COULD-13 (#41) validée. Le Dashboard franchit un cap ergonomique majeur.

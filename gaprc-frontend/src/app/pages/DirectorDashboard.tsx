@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { io } from "socket.io-client";
 import { SettingsTab } from "../components/dashboard/SettingsTab";
 import { ShiftDetailsModal } from "../components/dashboard/ShiftDetailsModal";
+import { RevenueChart } from "../components/dashboard/RevenueChart";
 import { JobistesTab } from "../components/dashboard/JobistesTab";
 import {
   LayoutDashboard, Users, Settings, LogOut,
@@ -503,6 +504,9 @@ export function DirectorDashboard() {
                   icon={totalEcart < 0 ? TrendingDown : TrendingUp}
                   variant={totalEcart < 0 ? "red" : "green"} />
               </div>
+
+              {/* ─── GRAPHIQUE ─── */}
+              <RevenueChart shifts={filteredShifts} />
 
               {/* Date filter */}
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
