@@ -8,7 +8,7 @@ import { RevenueChart } from "../components/dashboard/RevenueChart";
 import { JobistesTab } from "../components/dashboard/JobistesTab";
 import {
   LayoutDashboard, Users, Settings, LogOut,
-  CheckCircle2, Activity, Calendar,
+  CheckCircle2, Calendar,
   ChevronLeft, ChevronRight,
   Filter, Banknote, Clock
 } from "lucide-react";
