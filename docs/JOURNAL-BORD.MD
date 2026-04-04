@@ -288,3 +288,34 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Préparation Hardware :** Le backend renvoie un payload d'erreur structuré (`{"error": "CAISSE_OCCUPEE", "message": "Caisse occupée par X"}`). L'ESP32 pourra parser ce JSON pour afficher l'alerte physiquement sur l'écran OLED.
 
 **Statut :** SHOULD-10 (#39) validée. Le Kiosque gère parfaitement la concurrence matérielle et logicielle.
+
+
+
+## 🟡 SHOULD-13 [API] WebSockets temps réel — Déverrouillage kiosque sans rafraîchissement
+
+**Objectif :** Permettre au Kiosque React (PWA) de réagir en temps réel aux interactions matérielles (scan de badge sur l'ESP32) sans nécessiter de rafraîchissement de page (Polling).
+
+**Réalisations techniques :**
+- **Frontend (Kiosque) :** Utilisation de `socket.io-client` dans un `useEffect` au chargement de `KioskIdleScreen.tsx`.
+- **Événement `unlock_session` :** Le composant écoute activement cet événement. Dès réception du payload (contenant le nom du jobiste et l'ID du shift ouvert), l'application :
+  1. Enregistre le `shift_id` dans le `localStorage` de manière sécurisée.
+  2. Déclenche une navigation programmatique (React Router `Maps()`) vers l'interface de caisse (`/checkout`).
+- **Bénéfice UX :** Le jobiste n'a jamais besoin d'utiliser de souris ou de clavier pour initier son shift. Le simple contact physique de son badge sur le lecteur suffit à basculer l'écran.
+
+**Statut :** Issue #13 validée. La boucle matérielle -> logicielle est 100% sans friction.
+
+## 🔵 COULD-12 [API] Sécurité Anti-Brute Force — Rate Limiter sur l'authentification (#40)
+
+**Objectif :** Protéger le panneau d'administration du Directeur contre les attaques par force brute ou par dictionnaire (tentatives de mots de passe massives), une faille courante dans le Top 10 de l'OWASP.
+
+**Technologies et Librairies utilisées :**
+- **Node.js / Express.js :** Architecture de base de l'API.
+- **`express-rate-limit` (Middleware) :** Librairie standard de l'industrie pour le contrôle de flux HTTP.
+
+**Réalisations techniques :**
+- Implémentation du middleware `loginLimiter` ciblant exclusivement la route `POST /api/admin/login`.
+- **Règles métier :** Restriction à 5 requêtes maximum par fenêtre de 15 minutes pour une même adresse IP.
+- En cas de dépassement, le backend interrompt la chaîne de middleware (ne sollicitant plus PostgreSQL) et renvoie automatiquement un statut HTTP `429 Too Many Requests` avec un message explicatif pour le frontend.
+- Activation des `standardHeaders` pour informer le client du quota restant directement dans les en-têtes HTTP, respectant les normes RESTful.
+
+**Statut :** COULD-12 (#40) validée. Démonstration d'une approche "Security by Design". L'application gère activement les menaces réseau.

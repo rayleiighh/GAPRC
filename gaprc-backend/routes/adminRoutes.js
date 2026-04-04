@@ -3,27 +3,23 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { verifyToken } = require('../middlewares/auth');
 
-// CA1 : La route publique de connexion (PAS de verifyToken ici, sinon on ne pourrait jamais se connecter)
-router.post('/login', adminController.login);
+const rateLimit = require('express-rate-limit');
 
-// Route de test pour valider que le middleware bloque bien les intrus
-router.get('/dashboard-test', verifyToken, (req, res) => {
-    res.status(200).json({
-        message: 'Bienvenue sur le tableau de bord sécurisé !',
-        user_info: req.user
-    });
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // Fenêtre de 15 minutes
+    max: 5, // Bloque après 5 tentatives depuis la même adresse IP
+    message: { error: "Trop de tentatives de connexion. Veuillez réessayer dans 15 minutes." },
+    standardHeaders: true, // Renvoie les infos de limite dans les headers HTTP
+    legacyHeaders: false,
 });
 
-// ==========================================
-// ROUTES SÉCURISÉES - ISSUE 6
-// ==========================================
+// CA1 : Route de login (Publique, MAIS protégée par le limiteur !)
+router.post('/login', loginLimiter, adminController.login);
 
-// Gérer les jobistes (GET, POST, DELETE)
+// CA2 : Routes d'administration (Protégées par JWT)
 router.get('/jobistes', verifyToken, adminController.getAllJobistes);
 router.post('/jobistes', verifyToken, adminController.addJobiste);
+router.post('/jobistes/:id/badge', verifyToken, adminController.assignBadge);
 router.delete('/jobistes/:id', verifyToken, adminController.deleteJobiste);
-
-// Assigner un badge à un jobiste précis (POST)
-router.post('/jobistes/:user_id/badge', verifyToken, adminController.assignBadge);
 
 module.exports = router;
