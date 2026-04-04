@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { motion } from "motion/react"; // ou "framer-motion" selon ce que tu as
+import { motion } from "motion/react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { 
   Shield, Mail, Bell, Database, 
   Download, FileText, CheckCircle2, Save 
 } from "lucide-react";
+import { fmtHours } from "../../pages/DirectorDashboard";
 
-/* ─── Composants UI ──────────────────────────────────────────────── */
 const Section = ({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) => (
   <div style={{ background: "white", borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.05)" }}>
     <div style={{ padding: "18px 28px", borderBottom: "1px solid #f4f4f5", display: "flex", alignItems: "center", gap: 10 }}>
@@ -32,7 +32,6 @@ const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v:
   </div>
 );
 
-/* ─── Settings Tab Principal ─────────────────────────────────────── */
 export function SettingsTab({ shifts }: { shifts: any[] }) {
   const [saved, setSaved] = useState(false);
   
@@ -40,7 +39,6 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
   const [address, setAddress] = useState(() => localStorage.getItem("sc_address") || "Rue du Sport 42, 1000 Bruxelles");
   const [adminEmail, setAdminEmail] = useState(() => localStorage.getItem("sc_adminEmail") || "direction@sportscenter.be");
   const [adminPhone, setAdminPhone] = useState(() => localStorage.getItem("sc_adminPhone") || "+32 2 123 45 67");
-  const [notifEcart, setNotifEcart] = useState(() => localStorage.getItem("sc_notifEcart") !== "false");
   const [notifCloture, setNotifCloture] = useState(() => localStorage.getItem("sc_notifCloture") !== "false");
 
   const handleSave = () => {
@@ -48,7 +46,6 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
     localStorage.setItem("sc_address", address);
     localStorage.setItem("sc_adminEmail", adminEmail);
     localStorage.setItem("sc_adminPhone", adminPhone);
-    localStorage.setItem("sc_notifEcart", notifEcart.toString());
     localStorage.setItem("sc_notifCloture", notifCloture.toString());
 
     setSaved(true);
@@ -57,10 +54,10 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
 
   const exportCSV = () => {
     if (shifts.length === 0) return alert("Aucune donnée à exporter.");
-    const headers = ["ID", "Date", "Jobiste", "Arrivee", "Depart", "Attendu", "Reel", "Ecart"];
+    const headers = ["ID", "Date", "Jobiste", "Arrivee", "Depart", "Heures_Prestees", "Encaisse"];
     const rows = shifts.map(s => [
       s.id, s.date, s.jobiste, s.arrivee, s.depart,
-      s.attendu.toFixed(2), s.reel.toFixed(2), s.ecart.toFixed(2)
+      s.heures.toFixed(2), s.reel.toFixed(2)
     ]);
     const csvContent = [headers.join(";"), ...rows.map(e => e.join(";"))].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -87,23 +84,21 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
     doc.setFontSize(9);
     doc.text(`${address} | Contact: ${adminEmail} | Tél: ${adminPhone}`, 14, 36);
 
-    const totalAttendu = shifts.reduce((s, j) => s + j.attendu, 0);
     const totalReel = shifts.reduce((s, j) => s + j.reel, 0);
-    const totalEcart = shifts.reduce((s, j) => s + j.ecart, 0);
+    const totalHeures = shifts.reduce((s, j) => s + j.heures, 0);
 
     const tableData = shifts.map(s => [
       s.date, s.jobiste, `${s.arrivee} - ${s.depart}`,
-      `${s.attendu.toFixed(2)} €`, `${s.reel.toFixed(2)} €`,
-      `${s.ecart > 0 ? '+' : ''}${s.ecart.toFixed(2)} €`
+      fmtHours(s.heures), `${s.reel.toFixed(2)} €`
     ]);
 
     autoTable(doc, {
       startY: 44,
-      head: [['Date', 'Jobiste', 'Horaire', 'Attendu', 'Réel', 'Écart']],
+      head: [['Date', 'Jobiste', 'Horaire', 'Heures', 'Encaissé']],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [220, 38, 38] },
-      foot: [['', '', 'TOTAUX', `${totalAttendu.toFixed(2)} €`, `${totalReel.toFixed(2)} €`, `${totalEcart > 0 ? '+' : ''}${totalEcart.toFixed(2)} €`]],
+      foot: [['', '', 'TOTAUX', fmtHours(totalHeures), `${totalReel.toFixed(2)} €`]],
       footStyles: { fillColor: [24, 24, 27], fontStyle: 'bold' }
     });
     doc.save(`Rapport_SportsCenter_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -145,7 +140,6 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
       </Section>
 
       <Section title="Notifications" icon={Bell}>
-        <Toggle value={notifEcart} onChange={setNotifEcart} label="Alertes écart de caisse" sub="Notifier quand un écart négatif est détecté à la clôture" />
         <Toggle value={notifCloture} onChange={setNotifCloture} label="Résumé de clôture" sub="Recevoir un récapitulatif par email à chaque clôture de shift" />
       </Section>
 

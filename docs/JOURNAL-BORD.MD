@@ -336,3 +336,19 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Liaison des états :** Le graphique écoute l'état `filteredShifts`, ce qui signifie qu'il se met à jour en temps réel selon les dates sélectionnées par le directeur et selon les WebSockets (clôture en direct d'un jobiste).
 
 **Statut :** COULD-13 (#41) validée. Le Dashboard franchit un cap ergonomique majeur.
+
+
+## 🔧 FIX #28 [PWA] Alignement Métier — Suppression de la caisse théorique et des écarts
+
+**Objectif :** Adapter le logiciel à la réalité stricte du terrain. Au Hall Omnisport, les paiements se font directement au comptoir (pas de caisse "théorique" pré-calculée à confronter). La notion d'écart (Attendu vs Réel) polluait l'interface et a donc été supprimée au profit de KPIs réellement utiles pour la direction.
+
+**Réalisations techniques (Refactoring) :**
+- **Tableau de bord (`DirectorDashboard.tsx`) :** - Suppression totale du composant `EcartPill` et des alertes de déficit.
+  - Mise en place de nouvelles métriques de Business Intelligence (BI) : Chiffre d'Affaires total, Temps Presté cumulé (en heures/minutes), et Nombre de sessions réalisées.
+  - Refonte du tableau principal pour afficher ces nouvelles colonnes épurées.
+  - Rendu de la légende du calendrier 100% dynamique (générée à partir du `Set` des jobistes ayant réellement travaillé sur le mois affiché).
+- **Graphiques (`RevenueChart.tsx`) :** Simplification du graphique Recharts pour n'afficher qu'une seule courbe d'aire (AreaChart) focalisée sur l'évolution des encaissements réels (CA).
+- **Fiches RH (`JobistesTab.tsx`) :** Nettoyage des statistiques par jobiste, remplaçant la notion d'écart cumulé par le Chiffre d'Affaires généré par l'employé.
+- **Exports Comptables (`SettingsTab.tsx`) :** Mise à jour des algorithmes de génération de PDF (`jspdf-autotable`) et de CSV pour exclure les colonnes obsolètes et inclure le volume horaire presté.
+
+**Valeur pour le TFE :** Démonstration d'une grande agilité projet. Savoir faire un "pivot" et supprimer du code obsolète pour améliorer l'Expérience Utilisateur (UX) est une compétence rare et très recherchée en entreprise.

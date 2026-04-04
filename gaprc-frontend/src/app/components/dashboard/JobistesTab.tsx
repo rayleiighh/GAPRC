@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Mail, Phone, X, UserPlus, Trash2, CreditCard, FileText } from "lucide-react";
-// 👈 On importe tes fonctions depuis le Dashboard ! (Ajuste le chemin si besoin : "../pages/DirectorDashboard" ou "../../app/pages/DirectorDashboard")
-import { getJobisteMeta, fmtCurrency, fmtHours, fmtDate, EcartPill } from "../../pages/DirectorDashboard"; 
+import { getJobisteMeta, fmtCurrency, fmtHours, fmtDate } from "../../pages/DirectorDashboard"; 
 
 /* ─── Jobiste Detail Modal ───────────────────────────────────────── */
 function JobisteDetailModal({ jobisteName, shifts, onClose }: { jobisteName: string; shifts: any[]; onClose: () => void }) {
   const meta = getJobisteMeta(jobisteName);
   const totalHeures = shifts.reduce((s, j) => s + j.heures, 0);
   const totalReel = shifts.reduce((s, j) => s + j.reel, 0);
-  const totalEcart = shifts.reduce((s, j) => s + j.ecart, 0);
   const sortedShifts = [...shifts].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
@@ -33,12 +31,11 @@ function JobisteDetailModal({ jobisteName, shifts, onClose }: { jobisteName: str
           <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X style={{ width: 16, height: 16, color: "#6b7280" }} /></button>
         </div>
         {/* Stats summary */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, padding: "20px 32px", flexShrink: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: "20px 32px", flexShrink: 0 }}>
           {[
-            { label: "Shifts", value: shifts.length.toString(), sub: "sessions" },
-            { label: "Total heures", value: fmtHours(totalHeures), sub: `Moy. ${fmtHours(totalHeures / (shifts.length || 1))}/shift` },
-            { label: "Montant géré", value: fmtCurrency(totalReel), sub: "Total réel encaissé" },
-            { label: "Écart cumulé", value: (totalEcart > 0 ? "+" : "") + fmtCurrency(totalEcart), sub: totalEcart < 0 ? "Déficit total" : "Excédent total" },
+            { label: "Shifts effectués", value: shifts.length.toString(), sub: "sessions clôturées" },
+            { label: "Temps Presté", value: fmtHours(totalHeures), sub: `Moy. ${fmtHours(totalHeures / (shifts.length || 1))}/shift` },
+            { label: "Chiffre d'Affaires", value: fmtCurrency(totalReel), sub: "Total encaissé" },
           ].map(({ label, value, sub }) => (
             <div key={label} style={{ background: "#f9fafb", border: "1px solid #f0f0f0", borderRadius: 14, padding: "14px 16px" }}>
               <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>{label}</p>
@@ -50,19 +47,18 @@ function JobisteDetailModal({ jobisteName, shifts, onClose }: { jobisteName: str
         {/* Shifts table */}
         <div style={{ flex: 1, overflowY: "auto", margin: "0 32px 28px" }}>
           <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid #f0f0f0" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.9fr 0.9fr 0.8fr 1fr 1fr", padding: "10px 20px", background: "#18181b", alignItems: "center" }}>
-              {["Date", "Arrivée", "Départ", "Heures", "Montant réel", "Écart"].map((h, i) => (
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1fr 1fr", padding: "10px 20px", background: "#18181b", alignItems: "center" }}>
+              {["Date", "Arrivée", "Départ", "Heures", "Encaissé"].map((h, i) => (
                 <span key={h} style={{ fontSize: "0.62rem", fontWeight: 700, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.09em", textAlign: i >= 3 ? "right" : "left" }}>{h}</span>
               ))}
             </div>
             {sortedShifts.map((s, idx) => (
-              <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.9fr 0.9fr 0.8fr 1fr 1fr", padding: "13px 20px", alignItems: "center", borderBottom: idx < sortedShifts.length - 1 ? "1px solid #f4f4f5" : "none", background: s.ecart < 0 ? "#fff8f8" : "white" }}>
+              <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1fr 1fr", padding: "13px 20px", alignItems: "center", borderBottom: idx < sortedShifts.length - 1 ? "1px solid #f4f4f5" : "none", background: "white" }}>
                 <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#374151" }}>{fmtDate(s.date)}</span>
                 <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>{s.arrivee}</span>
                 <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>{s.depart}</span>
                 <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#374151", textAlign: "right" }}>{fmtHours(s.heures)}</span>
-                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#374151", textAlign: "right" }}>{fmtCurrency(s.reel)}</span>
-                <div style={{ display: "flex", justifyContent: "flex-end" }}><EcartPill ecart={s.ecart} /></div>
+                <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#15803d", textAlign: "right" }}>{fmtCurrency(s.reel)}</span>
               </div>
             ))}
           </div>
@@ -190,8 +186,7 @@ export function JobistesTab({ shifts }: { shifts: any[] }) {
     const jobisteShifts = filteredShifts.filter(s => s.jobiste === fullName);
     const totalHeures = jobisteShifts.reduce((s, j) => s + j.heures, 0);
     const totalReel   = jobisteShifts.reduce((s, j) => s + j.reel, 0);
-    const totalEcart  = jobisteShifts.reduce((s, j) => s + j.ecart, 0);
-    return { shifts: jobisteShifts, totalHeures, totalReel, totalEcart };
+    return { shifts: jobisteShifts, totalHeures, totalReel };
   };
 
   return (
@@ -248,7 +243,7 @@ export function JobistesTab({ shifts }: { shifts: any[] }) {
                 {/* Stats grid */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div style={{ background: "#f9fafb", borderRadius: 12, padding: "10px 14px" }}><p style={{ fontSize: "0.6rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Shifts / Heures</p><p style={{ fontSize: "1.1rem", fontWeight: 900, color: "#111827", letterSpacing: "-0.02em" }}>{stats.shifts.length} <span style={{ fontSize: "0.8rem", color: "#6b7280", fontWeight: 600 }}>({fmtHours(stats.totalHeures)})</span></p></div>
-                  <div style={{ background: stats.totalEcart < 0 ? "#fef2f2" : "#f0fdf4", border: `1px solid ${stats.totalEcart < 0 ? "#fecaca" : "#bbf7d0"}`, borderRadius: 12, padding: "10px 14px" }}><p style={{ fontSize: "0.6rem", fontWeight: 700, color: stats.totalEcart < 0 ? "#ef4444" : "#15803d", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>Écart Cumulé</p><p style={{ fontSize: "1.1rem", fontWeight: 900, color: stats.totalEcart < 0 ? "#b91c1c" : stats.totalEcart > 0 ? "#15803d" : "#9ca3af", letterSpacing: "-0.02em" }}>{stats.totalEcart > 0 ? "+" : ""}{fmtCurrency(stats.totalEcart)}</p></div>
+                  <div style={{ background: "#f0fdf4", border: `1px solid #bbf7d0`, borderRadius: 12, padding: "10px 14px" }}><p style={{ fontSize: "0.6rem", fontWeight: 700, color: "#15803d", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 2 }}>CA Généré</p><p style={{ fontSize: "1.1rem", fontWeight: 900, color: "#15803d", letterSpacing: "-0.02em" }}>{fmtCurrency(stats.totalReel)}</p></div>
                 </div>
 
                 <button onClick={() => setSelectedJobiste(fullName)} style={{ width: "100%", marginTop: 12, padding: "8px", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, color: "#374151", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><FileText style={{ width: 13, height: 13 }} /> Voir la fiche RH</button>

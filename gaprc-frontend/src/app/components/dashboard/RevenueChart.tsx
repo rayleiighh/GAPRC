@@ -4,23 +4,18 @@ import {
 } from 'recharts';
 
 export function RevenueChart({ shifts }: { shifts: any[] }) {
-  // On regroupe et additionne les montants par date
   const chartData = useMemo(() => {
-    const grouped: Record<string, { date: string, attendu: number, reel: number }> = {};
-
-    // On trie les shifts par date (du plus ancien au plus récent)
+    const grouped: Record<string, { date: string, reel: number }> = {};
     const sortedShifts = [...shifts].sort((a, b) => a.date.localeCompare(b.date));
 
     sortedShifts.forEach(shift => {
-      // Formatage de la date de "YYYY-MM-DD" vers "JJ/MM"
       const [, m, d] = shift.date.split('-');
       const shortDate = `${d}/${m}`;
 
       if (!grouped[shortDate]) {
-        grouped[shortDate] = { date: shortDate, attendu: 0, reel: 0 };
+        grouped[shortDate] = { date: shortDate, reel: 0 };
       }
-      grouped[shortDate].attendu += shift.attendu;
-      grouped[shortDate].reel += shift.reel;
+      grouped[shortDate].reel += shift.reel; // On ne garde que l'argent réel
     });
 
     return Object.values(grouped);
@@ -34,17 +29,12 @@ export function RevenueChart({ shifts }: { shifts: any[] }) {
 
   return (
     <div style={{ 
-      background: "white", 
-      borderRadius: 20, 
-      padding: "24px 28px",
+      background: "white", borderRadius: 20, padding: "24px 28px",
       boxShadow: "0 4px 6px rgba(0,0,0,0.03), 0 24px 48px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05)",
-      height: 340,
-      display: "flex",
-      flexDirection: "column",
-      marginBottom: 24
+      height: 300, display: "flex", flexDirection: "column", marginBottom: 24
     }}>
       <h3 style={{ fontSize: "1.1rem", fontWeight: 800, color: "#111827", marginBottom: 20, letterSpacing: "-0.025em" }}>
-        Évolution des encaissements (Attendu vs Réel)
+        Évolution du Chiffre d'Affaires
       </h3>
       
       <div style={{ flex: 1, minHeight: 0 }}>
@@ -52,12 +42,8 @@ export function RevenueChart({ shifts }: { shifts: any[] }) {
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorReel" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#15803d" stopOpacity={0.35}/>
+                <stop offset="5%" stopColor="#15803d" stopOpacity={0.4}/>
                 <stop offset="95%" stopColor="#15803d" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorAttendu" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#9ca3af" stopOpacity={0.25}/>
-                <stop offset="95%" stopColor="#9ca3af" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
@@ -68,8 +54,7 @@ export function RevenueChart({ shifts }: { shifts: any[] }) {
               formatter={(value: number) => [`${value.toFixed(2)} €`]}
               labelStyle={{ color: "#9ca3af", marginBottom: 8, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}
             />
-            <Area type="monotone" dataKey="attendu" name="Attendu" stroke="#9ca3af" strokeWidth={2} fillOpacity={1} fill="url(#colorAttendu)" />
-            <Area type="monotone" dataKey="reel" name="Réel" stroke="#15803d" strokeWidth={3} fillOpacity={1} fill="url(#colorReel)" />
+            <Area type="monotone" dataKey="reel" name="Encaissé" stroke="#15803d" strokeWidth={3} fillOpacity={1} fill="url(#colorReel)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

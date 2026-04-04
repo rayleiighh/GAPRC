@@ -8,13 +8,12 @@ import { RevenueChart } from "../components/dashboard/RevenueChart";
 import { JobistesTab } from "../components/dashboard/JobistesTab";
 import {
   LayoutDashboard, Users, Settings, LogOut,
-  TrendingDown, TrendingUp, Minus, AlertTriangle,
   CheckCircle2, Activity, Calendar,
   ChevronLeft, ChevronRight,
-  Filter,
+  Filter, Banknote, Clock
 } from "lucide-react";
 
-/* ─── Mock Data ──────────────────────────────────────────────────── */
+/* ─── Mock Data & Fallback ───────────────────────────────────────── */
 export const JOBISTES_META = [
   { name: "Rayane",  initials: "RA", color: "#dc2626", email: "rayane.k@sportscenter.be",  phone: "+32 470 12 34 56" },
   { name: "Sophie",  initials: "SO", color: "#7c3aed", email: "sophie.m@sportscenter.be",  phone: "+32 471 23 45 67" },
@@ -27,17 +26,16 @@ export const getJobisteMeta = (name: string) => {
   const found = JOBISTES_META.find(j => j.name === name);
   if (found) return found;
   
-  // Si le nom vient de la DB et n'est pas dans la liste Figma, on crée un avatar générique
+  // Si le nom vient de la DB et n'est pas dans la liste, on crée un avatar générique
   const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "??";
   return {
     name: name,
     initials: initials,
-    color: "#6b7280", // Un beau gris passe-partout
+    color: "#6b7280", 
     email: "non-renseigne@gaprc.be",
     phone: "-"
   };
 };
-
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
 export function fmtCurrency(n: number) {
@@ -69,38 +67,6 @@ export const navItems = [
   { id: "settings",   label: "Paramètres",  icon: Settings        },
 ];
 
-/* ─── Écart Pill ─────────────────────────────────────────────────── */
-export function EcartPill({ ecart }: { ecart: number }) {
-  if (ecart < 0) return (
-    <motion.span initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 22 }}
-      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 13px", borderRadius: 99,
-        background: "#fef2f2", border: "1.5px solid #fca5a5", color: "#b91c1c", fontWeight: 800,
-        fontSize: "0.82rem", letterSpacing: "-0.01em",
-        boxShadow: "0 2px 8px rgba(220,38,38,0.18), 0 0 0 3px rgba(220,38,38,0.07)", whiteSpace: "nowrap" }}
-    >
-      <AlertTriangle style={{ width: 13, height: 13, color: "#dc2626" }} />
-      {ecart.toFixed(2)} €
-    </motion.span>
-  );
-  if (ecart > 0) return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 99,
-      background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", fontWeight: 700,
-      fontSize: "0.82rem", whiteSpace: "nowrap" }}
-    >
-      <TrendingUp style={{ width: 12, height: 12 }} />+{ecart.toFixed(2)} €
-    </span>
-  );
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 99,
-      background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#6b7280", fontWeight: 600,
-      fontSize: "0.82rem", whiteSpace: "nowrap" }}
-    >
-      <Minus style={{ width: 12, height: 12 }} />0.00 €
-    </span>
-  );
-}
-
 /* ─── KPI Card ───────────────────────────────────────────────────── */
 export function KpiCard({ label, value, sub, variant = "neutral", icon: Icon }:
   { label: string; value: string; sub?: string; variant?: "neutral" | "red" | "green"; icon: React.ElementType }) {
@@ -128,14 +94,11 @@ export function KpiCard({ label, value, sub, variant = "neutral", icon: Icon }:
   );
 }
 
-
 /* ─── Calendar View ──────────────────────────────────────────────── */
 export function CalendarView({ shifts }: { shifts: any[] }) {
-  // On calcule la date du jour
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-  // On initialise le calendrier sur le mois et l'année en cours
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()); 
   const [selectedDay, setSelectedDay] = useState<string | null>(todayStr);
@@ -164,7 +127,6 @@ export function CalendarView({ shifts }: { shifts: any[] }) {
 
   const selectedShifts = selectedDay ? shifts.filter(s => s.date === selectedDay) : [];
   
-  // On utilise la vraie date calculée plus haut
   const today = todayStr;
 
   const cells: (number | null)[] = [
@@ -172,6 +134,9 @@ export function CalendarView({ shifts }: { shifts: any[] }) {
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
+
+  // Génération dynamique des jobistes présents ce mois-ci
+  const uniqueJobistesThisMonth = Array.from(new Set(shifts.map(s => s.jobiste)));
 
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
@@ -250,15 +215,20 @@ export function CalendarView({ shifts }: { shifts: any[] }) {
           })}
         </div>
 
-        {/* Legend */}
-        <div style={{ borderTop: "1px solid #f4f4f5", padding: "16px 28px", display: "flex", gap: 16, flexWrap: "wrap" }}>
-          {JOBISTES_META.map(j => (
-            <div key={j.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: j.color }} />
-              <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 500 }}>{j.name}</span>
-            </div>
-          ))}
-        </div>
+        {/* Legend Dynamique */}
+        {uniqueJobistesThisMonth.length > 0 && (
+          <div style={{ borderTop: "1px solid #f4f4f5", padding: "16px 28px", display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {uniqueJobistesThisMonth.map(name => {
+              const meta = getJobisteMeta(name as string);
+              return (
+                <div key={meta.name} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: meta.color }} />
+                  <span style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 500 }}>{meta.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Selected day detail */}
@@ -290,9 +260,8 @@ export function CalendarView({ shifts }: { shifts: any[] }) {
                       <p style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{s.arrivee} → {s.depart} · {fmtHours(s.heures)}</p>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <p style={{ fontWeight: 800, fontSize: "0.95rem", color: "#111827" }}>{fmtCurrency(s.reel)}</p>
+                      <p style={{ fontWeight: 800, fontSize: "0.95rem", color: "#15803d" }}>{fmtCurrency(s.reel)}</p>
                     </div>
-                    <EcartPill ecart={s.ecart} />
                   </div>
                 );
               })}
@@ -304,7 +273,6 @@ export function CalendarView({ shifts }: { shifts: any[] }) {
   );
 }
 
-
 /* ─── Main Dashboard ─────────────────────────────────────────────── */
 export function DirectorDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -312,12 +280,10 @@ export function DirectorDashboard() {
   const [shifts, setShifts] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);   
   
-  // 🟢 NOUVEAU : L'état pour savoir quel shift on veut regarder en détail
   const [selectedShiftForDetails, setSelectedShiftForDetails] = useState<any | null>(null); 
   
   const navigate = useNavigate();
   
-  // 1. On sépare la fonction de chargement pour pouvoir l'appeler à la demande
   const fetchShifts = async () => {
     const token = localStorage.getItem("adminToken");
     if (!token) {
@@ -335,9 +301,7 @@ export function DirectorDashboard() {
         const formattedData = data.map((shift: any) => ({
             ...shift,
             heures: Number(shift.heures),
-            attendu: Number(shift.attendu),
             reel: Number(shift.reel),
-            ecart: Number(shift.ecart)
         }));
         setShifts(formattedData);
       } else if (response.status === 401 || response.status === 403) {
@@ -351,7 +315,6 @@ export function DirectorDashboard() {
     }
   };
 
-  // 2. Le useEffect qui lance le chargement ET écoute le WebSocket
   useEffect(() => {
     fetchShifts();
     const socket = io(import.meta.env.VITE_API_URL);
@@ -376,12 +339,12 @@ export function DirectorDashboard() {
     ? shifts
     : shifts.filter(s => s.date === dateFilter);
 
-  const totalAttendu = filteredShifts.reduce((s, r) => s + r.attendu, 0);
-  const totalReel    = filteredShifts.reduce((s, r) => s + r.reel, 0);
-  const totalEcart   = totalReel - totalAttendu;
-  const negCount     = filteredShifts.filter(r => r.ecart < 0).length;
+  // 🟢 NOUVEAUX CALCULS (Plus d'attendu ni d'écart)
+  const totalReel   = filteredShifts.reduce((s, r) => s + r.reel, 0);
+  const totalHeures = filteredShifts.reduce((s, r) => s + r.heures, 0);
+  const shiftCount  = filteredShifts.length;
 
-  const tableColumns = "1.8fr 1fr 0.9fr 0.9fr 1.1fr 1.1fr 1.3fr";
+  const tableColumns = "2fr 1.2fr 1fr 1fr 1fr 1.2fr";
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", fontFamily: "inherit" }}>
@@ -470,20 +433,11 @@ export function DirectorDashboard() {
             </h1>
             <p style={{ fontSize: "0.82rem", color: "#9ca3af", fontWeight: 500, marginTop: 4 }}>
               {activeTab === "dashboard"  && `Jeudi 12 mars 2026 · ${filteredShifts.length} sessions`}
-              {activeTab === "jobistes"   && `${JOBISTES_META.length} étudiants · Fiches RH`}
+              {activeTab === "jobistes"   && `Gestion des fiches RH`}
               {activeTab === "calendrier" && "Vue mensuelle des prestations"}
               {activeTab === "settings"   && "Configuration du système"}
             </p>
           </div>
-          {activeTab === "dashboard" && negCount > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
-              background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10 }}>
-              <AlertTriangle style={{ width: 14, height: 14, color: "#dc2626" }} />
-              <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "#b91c1c" }}>
-                {negCount} écart{negCount > 1 ? "s" : ""} négatif{negCount > 1 ? "s" : ""} détecté{negCount > 1 ? "s" : ""}
-              </span>
-            </div>
-          )}
         </header>
 
         {/* Page content */}
@@ -493,16 +447,15 @@ export function DirectorDashboard() {
           {activeTab === "dashboard" && (
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
               style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              
               {/* KPI Cards */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-                <KpiCard label="Total Attendu" value={`${totalAttendu.toFixed(2)} €`}
-                  sub="Somme des montants théoriques" icon={Activity} variant="neutral" />
-                <KpiCard label="Total Réel" value={`${totalReel.toFixed(2)} €`}
-                  sub="Somme des montants déclarés" icon={CheckCircle2} variant="green" />
-                <KpiCard label="Écart Total" value={`${totalEcart > 0 ? "+" : ""}${totalEcart.toFixed(2)} €`}
-                  sub={totalEcart < 0 ? "Déficit constaté" : "Excédent constaté"}
-                  icon={totalEcart < 0 ? TrendingDown : TrendingUp}
-                  variant={totalEcart < 0 ? "red" : "green"} />
+                <KpiCard label="Chiffre d'Affaires" value={`${totalReel.toFixed(2)} €`}
+                  sub="Total des encaissements" icon={Banknote} variant="green" />
+                <KpiCard label="Temps Presté" value={fmtHours(totalHeures)}
+                  sub="Heures travaillées cumulées" icon={Clock} variant="neutral" />
+                <KpiCard label="Sessions Réalisées" value={shiftCount.toString()}
+                  sub="Nombre de shifts clôturés" icon={CheckCircle2} variant="neutral" />
               </div>
 
               {/* ─── GRAPHIQUE ─── */}
@@ -542,9 +495,8 @@ export function DirectorDashboard() {
                     { label: "Date",    align: "left" },
                     { label: "Arrivée", align: "left" },
                     { label: "Départ",  align: "left" },
-                    { label: "Attendu", align: "right" },
-                    { label: "Réel",    align: "right" },
-                    { label: "Écart",   align: "right" },
+                    { label: "Heures",  align: "right" },
+                    { label: "Encaissé",align: "right" },
                   ].map(({ label, align }) => (
                     <span key={label} style={{ fontSize: "0.65rem", fontWeight: 700, color: "#52525b",
                       textTransform: "uppercase", letterSpacing: "0.09em", textAlign: align as "left" | "right" }}>
@@ -555,55 +507,34 @@ export function DirectorDashboard() {
 
                 {/* Rows */}
                 {filteredShifts.map((shift, idx) => {
-                  const isNeg  = shift.ecart < 0;
                   const isLast = idx === filteredShifts.length - 1;
                   const meta = getJobisteMeta(shift.jobiste);
                   return (
                     <motion.div key={shift.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.03 + idx * 0.03, duration: 0.3 }}
-                      
-                      // 🟢 NOUVEAU : On rend la ligne cliquable
                       onClick={() => setSelectedShiftForDetails(shift)} 
                       whileHover={{ backgroundColor: "#f9fafb" }}
-                      
                       style={{ display: "grid", gridTemplateColumns: tableColumns, padding: "16px 28px",
                         alignItems: "center", borderBottom: isLast ? "none" : "1px solid #f4f4f5",
-                        background: isNeg ? "#fff8f8" : "transparent", position: "relative",
+                        background: "transparent", cursor: "pointer" }}>
                         
-                        // 🟢 NOUVEAU : Petit curseur pour montrer qu'on peut cliquer
-                        cursor: "pointer" }}>
-                        
-                      {isNeg && (
-                        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
-                          background: "#dc2626", borderRadius: "0 2px 2px 0" }} />
-                      )}
-                      {/* Jobiste */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 34, height: 34, borderRadius: 10, background: `${meta.color}18`,
-                          border: `1.5px solid ${meta.color}30`, display: "flex", alignItems: "center",
-                          justifyContent: "center", flexShrink: 0 }}>
+                          border: `1.5px solid ${meta.color}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <span style={{ fontSize: "0.62rem", fontWeight: 900, color: meta.color }}>{meta.initials}</span>
                         </div>
-                        <div>
-                          <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "#111827", lineHeight: 1.2 }}>{shift.jobiste}</p>
-                          {isNeg && <p style={{ fontSize: "0.65rem", color: "#ef4444", fontWeight: 600 }}>Écart détecté</p>}
-                        </div>
+                        <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "#111827" }}>{shift.jobiste}</p>
                       </div>
-                      {/* Date */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px",
                           background: "#f3f4f6", borderRadius: 8, fontSize: "0.78rem", fontWeight: 700, color: "#374151" }}>
-                          <Calendar style={{ width: 10, height: 10 }} />
-                          {fmtDate(shift.date)}
+                          <Calendar style={{ width: 10, height: 10 }} /> {fmtDate(shift.date)}
                         </span>
                       </div>
                       <span style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: 500 }}>{shift.arrivee}</span>
                       <span style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: 500 }}>{shift.depart}</span>
-                      <span style={{ textAlign: "right", fontSize: "0.9rem", color: "#374151", fontWeight: 600 }}>{shift.attendu.toFixed(2)} €</span>
-                      <span style={{ textAlign: "right", fontSize: "0.9rem", color: "#374151", fontWeight: 600 }}>{shift.reel.toFixed(2)} €</span>
-                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                        <EcartPill ecart={shift.ecart} />
-                      </div>
+                      <span style={{ textAlign: "right", fontSize: "0.9rem", color: "#374151", fontWeight: 700 }}>{fmtHours(shift.heures)}</span>
+                      <span style={{ textAlign: "right", fontSize: "0.9rem", color: "#15803d", fontWeight: 800 }}>{fmtCurrency(shift.reel)}</span>
                     </motion.div>
                   );
                 })}
@@ -611,19 +542,10 @@ export function DirectorDashboard() {
                 {/* Footer totals */}
                 <div style={{ display: "grid", gridTemplateColumns: tableColumns, padding: "14px 28px",
                   background: "#fafafa", borderTop: "2px solid #f0f0f0", alignItems: "center" }}>
-                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    Totaux
-                  </span>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em" }}>Totaux</span>
                   <span /><span /><span />
-                  <span style={{ textAlign: "right", fontSize: "0.95rem", fontWeight: 900, color: "#111827" }}>
-                    {totalAttendu.toFixed(2)} €
-                  </span>
-                  <span style={{ textAlign: "right", fontSize: "0.95rem", fontWeight: 900, color: "#111827" }}>
-                    {totalReel.toFixed(2)} €
-                  </span>
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                    <EcartPill ecart={totalEcart} />
-                  </div>
+                  <span style={{ textAlign: "right", fontSize: "0.95rem", fontWeight: 900, color: "#111827" }}>{fmtHours(totalHeures)}</span>
+                  <span style={{ textAlign: "right", fontSize: "0.95rem", fontWeight: 900, color: "#15803d" }}>{fmtCurrency(totalReel)}</span>
                 </div>
               </div>
             </motion.div>
@@ -638,7 +560,7 @@ export function DirectorDashboard() {
           {/* ─── SETTINGS TAB ─── */}
           {activeTab === "settings" && <SettingsTab shifts={filteredShifts} />}
 
-          {/* 🟢 NOUVEAU : MODALE DÉTAILS SHIFT */}
+          {/* MODALE DÉTAILS SHIFT */}
           <AnimatePresence>
             {selectedShiftForDetails && (
               <ShiftDetailsModal 
