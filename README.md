@@ -9,8 +9,8 @@ Ce projet vise à automatiser le suivi des prestations et la gestion financière
 
 ## État d'avancement
 - [x] Phase 1 : Validation matérielle (NFC + OLED + WiFi)
-- [ ] Phase 2 : Développement du Backend (Node.js) et de la Base de données (PostgreSQL)
-- [ ] Phase 3 : Développement de la PWA (Offline-First)
+- [x] Phase 2 : Développement du Backend (Node.js) et de la Base de données (PostgreSQL)
+- [x] Phase 3 : Développement de la PWA (Offline-First)
 - [ ] Phase 4 : Déploiement et Mise en boîte
 
 ## Stack Technique
