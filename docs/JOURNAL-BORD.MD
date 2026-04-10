@@ -393,3 +393,16 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Asynchronisme UI :** L'affichage du nom du jobiste sur l'écran OLED SSD1306 est désormais géré par un timer `resetScreenTime = millis() + 3000`. Cela permet à l'ESP32 d'effacer l'écran après 3 secondes *sans interrompre* la boucle principale, garantissant que la vérification réseau (Background Sync) n'est jamais mise en pause.
 
 **Statut :** COULD-6 (#26) validée. Le kiosque offre désormais un ressenti matériel professionnel, digne d'un produit industriel de pointage.
+
+## 🔧 FIX [Hardware] Architecture logique : Séparation des erreurs réseau et des rejets métier
+
+**Objectif :** Corriger une faille logique dans la gestion du mode "Offline-First" de la badgeuse matérielle. L'ESP32 interprétait les refus légitimes du backend (ex: "Badge Inconnu" ou "Caisse déjà occupée") comme des pannes de connexion. Cela entraînait un stockage abusif de pointages invalides en mémoire NVS, créant une boucle infinie de synchronisations rejetées.
+
+**Réalisations techniques (C++) :**
+- **Refactoring du HTTP Client :** Implémentation d'une structure conditionnelle stricte analysant les codes HTTP de retour de Node.js.
+  - `HTTP 200` : Succès (Double bip, affichage dynamique du prénom corrigé via le parsing de `doc["user"]["first_name"]`).
+  - `HTTP 403 / 404` : Rejets métiers (Bip grave d'erreur, affichage de la raison sur l'OLED, *aucune sauvegarde mémoire*).
+  - `HTTP < 0` ou `500` : Vraie panne serveur/Wi-Fi (Activation du drapeau `isOfflineError` et sauvegarde en mémoire non-volatile).
+- **Sécurisation de la purge (Background Sync) :** La fonction `syncOfflineScans` considère désormais qu'un vieux pointage est "traité" (et peut être supprimé de la mémoire) même si le serveur répond 400 ou 403, évitant ainsi les blocages de la file d'attente (Deadlocks).
+
+**Valeur pour le TFE :** Démontre une capacité critique d'analyse système. Le couplage entre l'IoT (ESP32) et l'API est désormais parfaitement robuste et tolérant aux erreurs utilisateurs (double-badge) sans compromettre le mécanisme de secours.

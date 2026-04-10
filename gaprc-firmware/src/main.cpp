@@ -77,15 +77,15 @@ void setup() {
 }
 
 void loop() {
-    // 🔴 1. TIMER NON-BLOQUANT (Efface l'écran après 3s sans bloquer l'ESP32)
+    // 1. TIMER NON-BLOQUANT (Efface l'écran après 3s)
     if (resetScreenTime > 0 && millis() > resetScreenTime) {
         displayMessage(WiFi.status() == WL_CONNECTED ? "Pret" : "Mode HORS-LIGNE", "Passez votre badge");
         resetScreenTime = 0;
     }
 
-    // 2. Vérification de la reconnexion Wi-Fi en tâche de fond (Background Sync)
+    // 2. Vérification de la reconnexion Wi-Fi (Background Sync)
     static unsigned long lastWifiCheck = 0;
-    if (millis() - lastWifiCheck > 10000) { // Toutes les 10 secondes
+    if (millis() - lastWifiCheck > 10000) {
         if (WiFi.status() == WL_CONNECTED) {
             syncOfflineScans();
         }
@@ -100,7 +100,7 @@ void loop() {
     success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 500);
 
     if (success) {
-        playReadTone(); // 🔴 CA1 : Bip court immédiat de lecture physique
+        playReadTone(); // Bip physique
 
         String uidStr = "";
         for (uint8_t i = 0; i < uidLength; i++) {
@@ -108,17 +108,17 @@ void loop() {
         }
         
         long timestamp = getCurrentTimestamp();
-        Serial.println("🎯 Badge détecté : " + uidStr + " à " + String(timestamp));
-        displayMessage("Lecture...", "Traitement en cours");
+        Serial.println("🎯 Badge détecté : " + uidStr);
+        displayMessage("Lecture...", "Verification");
+
+        bool isOfflineError = false; // NOUVEAU : Drapeau pour savoir si c'est une vraie panne réseau
 
         // 4. TENTATIVE D'ENVOI AU SERVEUR
-        bool scanSent = false;
         if (WiFi.status() == WL_CONNECTED) {
             HTTPClient http;
             http.begin(serverUrl);
             http.addHeader("Content-Type", "application/json");
 
-            // Formatage du JSON
             JsonDocument doc;
             doc["nfc_uid"] = uidStr;
             doc["timestamp"] = timestamp;
@@ -126,35 +126,49 @@ void loop() {
             serializeJson(doc, requestBody);
 
             int httpResponseCode = http.POST(requestBody);
+            String responseStr = http.getString();
+            
+            JsonDocument respDoc;
+            deserializeJson(respDoc, responseStr);
 
             if (httpResponseCode == 200) {
-                // Succès Online
-                String responseStr = http.getString();
-                JsonDocument respDoc;
-                deserializeJson(respDoc, responseStr);
-                String jobisteName = respDoc["jobiste_name"] | "Inconnu";
-                String action = respDoc["action"] | "Check-in";
+                // ✅ SUCCÈS : Ouverture ou reprise de session
+                const char* fName = respDoc["user"]["first_name"];
+                String jobisteName = fName ? String(fName) : "Inconnu"; // Correction du bug du nom
                 
-                playSuccessTone(); // 🔴 CA2 : Bip aigu de succès
-                displayMessage("Succes (" + action + ")", "Bonjour " + jobisteName);
-                scanSent = true;
+                playSuccessTone();
+                displayMessage("Succes", "Bonjour " + jobisteName);
+
+            } else if (httpResponseCode == 403) {
+                // ⛔ ERREUR MÉTIER : Caisse déjà occupée !
+                playErrorTone();
+                displayMessage("Refuse", "Caisse occupee!");
+                Serial.println("⛔ Rejet: Une autre session est déjà ouverte.");
+
+            } else if (httpResponseCode == 404) {
+                // ⛔ ERREUR MÉTIER : Badge non assigné
+                playErrorTone();
+                displayMessage("Erreur", "Badge Inconnu");
+                Serial.println("⛔ Rejet: Badge non reconnu dans la DB.");
+
             } else {
-                playErrorTone(); // 🔴 CA3 : Bip grave d'erreur serveur
-                Serial.println("❌ Erreur Serveur HTTP: " + String(httpResponseCode));
+                // ⚠️ ERREUR RÉSEAU OU SERVEUR CRASHÉ (Code < 0 ou 500)
+                Serial.println("❌ Erreur de communication Serveur: " + String(httpResponseCode));
+                isOfflineError = true; 
             }
             http.end();
+        } else {
+            isOfflineError = true; // Pas de Wi-Fi du tout
         }
 
-        // 5. FALLBACK : MODE HORS-LIGNE
-        if (!scanSent) {
-            playErrorTone(); // 🔴 Bip grave d'avertissement hors-ligne
-            Serial.println("⚠️ Réseau/Serveur indisponible -> Sauvegarde NVS");
-            saveScanOffline(uidStr, timestamp);
-            displayMessage("Sauvegarde Locale", "Synchronisation differee");
+        // 5. FALLBACK : MODE HORS-LIGNE (Uniquement si VRAIE panne réseau)
+        if (isOfflineError) {
+            playErrorTone(); // Bip d'avertissement
+            saveScanOffline(uidStr, timestamp); // ON SAUVEGARDE UNIQUEMENT ICI !
+            displayMessage("Hors-ligne", "Pointage differe");
         }
 
-        // 🔴 CA4 : On arme le timer pour effacer l'écran dans 3 secondes
-        // (On supprime complètement le delay(3000) et l'affichage bloquant)
+        // On arme le timer pour effacer l'écran dans 3 secondes
         resetScreenTime = millis() + 3000; 
     }
 }
@@ -221,7 +235,7 @@ void syncOfflineScans() {
                 serializeJson(doc, requestBody);
 
                 int httpCode = http.POST(requestBody);
-                if (httpCode == 200) {
+                if (httpCode == 200 || httpCode == 403 || httpCode == 404 || httpCode == 400) {
                     successCount++;
                 }
                 http.end();
