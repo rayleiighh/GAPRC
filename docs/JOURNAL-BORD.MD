@@ -379,3 +379,17 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 **Valeur pour le TFE :** Démonstration d'une réelle maîtrise des systèmes asynchrones (IoT vers Web). L'API est désormais capable de différencier le comportement humain en direct d'une synchronisation machine en arrière-plan.
 
 **Statut :** Fix validé. La PWA reste parfaitement stable même lors d'une purge matérielle de dizaines de pointages différés.
+
+## 🔵 COULD-6 [Hardware] UX Badgeuse — Feedback OLED & Buzzer (< 500ms) (#26)
+
+**Objectif :** Fournir un retour visuel et auditif immédiat au jobiste lorsqu'il passe son badge, afin de fluidifier l'expérience utilisateur et de prévenir le "spam" de badges en cas de doute sur la prise en compte du scan.
+
+**Technologies et Librairies utilisées :**
+- **C++ natif :** Utilisation de la fonction `tone()` pour la génération de fréquences sur un buzzer passif.
+- **Gestion du temps :** Remplacement de la fonction bloquante `delay()` par une machine à états basée sur `millis()`.
+
+**Réalisations techniques :**
+- **UX Sonore (Feedback immédiat) :** Création de 3 signatures sonores distinctes : `playReadTone` (bip court de confirmation matérielle < 50ms), `playSuccessTone` (arpège montant de validation) et `playErrorTone` (bip grave signalant un rejet ou un passage en mode hors-ligne).
+- **Asynchronisme UI :** L'affichage du nom du jobiste sur l'écran OLED SSD1306 est désormais géré par un timer `resetScreenTime = millis() + 3000`. Cela permet à l'ESP32 d'effacer l'écran après 3 secondes *sans interrompre* la boucle principale, garantissant que la vérification réseau (Background Sync) n'est jamais mise en pause.
+
+**Statut :** COULD-6 (#26) validée. Le kiosque offre désormais un ressenti matériel professionnel, digne d'un produit industriel de pointage.

@@ -17,6 +17,8 @@ const char* serverUrl = "http://192.168.0.139:3000/api/scan"; // Ton backend Nod
 // --- HARDWARE ---
 #define SDA_PIN 21
 #define SCL_PIN 22
+#define BUZZER_PIN 23
+unsigned long resetScreenTime = 0;
 Adafruit_PN532 nfc(SDA_PIN, SCL_PIN);
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
@@ -29,9 +31,13 @@ long getCurrentTimestamp();
 void saveScanOffline(String uid, long timestamp);
 void syncOfflineScans();
 void displayMessage(String title, String msg);
+void playReadTone();
+void playSuccessTone();
+void playErrorTone();
 
 void setup() {
     Serial.begin(115200);
+    pinMode(BUZZER_PIN, OUTPUT);
     Wire.begin(SDA_PIN, SCL_PIN);
 
     // Initialisation Écran
@@ -71,7 +77,13 @@ void setup() {
 }
 
 void loop() {
-    // 1. Vérification de la reconnexion Wi-Fi en tâche de fond (Background Sync)
+    // 🔴 1. TIMER NON-BLOQUANT (Efface l'écran après 3s sans bloquer l'ESP32)
+    if (resetScreenTime > 0 && millis() > resetScreenTime) {
+        displayMessage(WiFi.status() == WL_CONNECTED ? "Pret" : "Mode HORS-LIGNE", "Passez votre badge");
+        resetScreenTime = 0;
+    }
+
+    // 2. Vérification de la reconnexion Wi-Fi en tâche de fond (Background Sync)
     static unsigned long lastWifiCheck = 0;
     if (millis() - lastWifiCheck > 10000) { // Toutes les 10 secondes
         if (WiFi.status() == WL_CONNECTED) {
@@ -80,7 +92,7 @@ void loop() {
         lastWifiCheck = millis();
     }
 
-    // 2. Lecture du badge NFC
+    // 3. Lecture du badge NFC
     uint8_t success;
     uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };
     uint8_t uidLength;
@@ -88,6 +100,8 @@ void loop() {
     success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 500);
 
     if (success) {
+        playReadTone(); // 🔴 CA1 : Bip court immédiat de lecture physique
+
         String uidStr = "";
         for (uint8_t i = 0; i < uidLength; i++) {
             uidStr += String(uid[i], HEX);
@@ -97,7 +111,7 @@ void loop() {
         Serial.println("🎯 Badge détecté : " + uidStr + " à " + String(timestamp));
         displayMessage("Lecture...", "Traitement en cours");
 
-        // 3. TENTATIVE D'ENVOI AU SERVEUR
+        // 4. TENTATIVE D'ENVOI AU SERVEUR
         bool scanSent = false;
         if (WiFi.status() == WL_CONNECTED) {
             HTTPClient http;
@@ -121,23 +135,27 @@ void loop() {
                 String jobisteName = respDoc["jobiste_name"] | "Inconnu";
                 String action = respDoc["action"] | "Check-in";
                 
+                playSuccessTone(); // 🔴 CA2 : Bip aigu de succès
                 displayMessage("Succes (" + action + ")", "Bonjour " + jobisteName);
                 scanSent = true;
             } else {
+                playErrorTone(); // 🔴 CA3 : Bip grave d'erreur serveur
                 Serial.println("❌ Erreur Serveur HTTP: " + String(httpResponseCode));
             }
             http.end();
         }
 
-        // 4. FALLBACK : MODE HORS-LIGNE
+        // 5. FALLBACK : MODE HORS-LIGNE
         if (!scanSent) {
+            playErrorTone(); // 🔴 Bip grave d'avertissement hors-ligne
             Serial.println("⚠️ Réseau/Serveur indisponible -> Sauvegarde NVS");
             saveScanOffline(uidStr, timestamp);
             displayMessage("Sauvegarde Locale", "Synchronisation differee");
         }
 
-        delay(3000); // Anti-spam (empêche de badger 10x d'affilée)
-        displayMessage(WiFi.status() == WL_CONNECTED ? "Pret" : "Mode HORS-LIGNE", "Passez votre badge");
+        // 🔴 CA4 : On arme le timer pour effacer l'écran dans 3 secondes
+        // (On supprime complètement le delay(3000) et l'affichage bloquant)
+        resetScreenTime = millis() + 3000; 
     }
 }
 
@@ -235,4 +253,19 @@ void displayMessage(String title, String msg) {
     display.setTextSize(1); // Mettre 2 si c'est trop petit, mais ça risque de déborder
     display.println(msg);
     display.display();
+}
+
+// --- FONCTIONS AUDIO ---
+void playReadTone() {
+    tone(BUZZER_PIN, 2500, 50); // Bip très court et aigu (Feedback tactile)
+}
+
+void playSuccessTone() {
+    tone(BUZZER_PIN, 1000, 100);
+    delay(100); // Petit delay toléré ici car c'est une animation sonore de validation
+    tone(BUZZER_PIN, 2000, 200); // Accord montant = Validation
+}
+
+void playErrorTone() {
+    tone(BUZZER_PIN, 300, 600); // Bip long et grave = Erreur / Refus / Hors-ligne
 }
