@@ -1,15 +1,19 @@
 const db = require('../config/db');
 
 const processNfcScan = async (req, res) => {
-    // CA1 : Récupérer l'UID envoyé par l'ESP32
-    const { nfc_uid } = req.body;
+    // 🔴 On récupère l'UID ET le timestamp envoyé par l'ESP32
+    const { nfc_uid, timestamp } = req.body;
 
-    if (!nfc_uid) {
-        return res.status(400).json({ error: "L'UID du badge est requis." });
+    if (!nfc_uid || !timestamp) {
+        return res.status(400).json({ error: "L'UID du badge et l'horodatage sont requis." });
     }
 
+    // 🔴 LOGIQUE MÉTIER : Différencier un scan "En direct" d'une "Synchro différée"
+    const now = Math.floor(Date.now() / 1000); // Timestamp actuel en secondes
+    const scanAge = Math.abs(now - timestamp); // Âge du scan en secondes
+    const isLiveScan = scanAge < 60; // Si le scan a moins d'une minute, il est "Live"
+
     try {
-        // CA2 : Requête paramétrée pour trouver l'utilisateur du badge
         const badgeQuery = `
             SELECT b.id AS badge_id, u.id AS user_id, u.first_name, u.last_name, b.is_active
             FROM badges b
@@ -18,21 +22,18 @@ const processNfcScan = async (req, res) => {
         `;
         const { rows: badgeRows } = await db.query(badgeQuery, [nfc_uid]);
 
-        // CA3 : Si le badge est inconnu
         if (badgeRows.length === 0) {
             return res.status(404).json({ error: "Badge inconnu ou non assigné." });
         }
 
         const user = badgeRows[0];
         
-        // Vérification si le badge est désactivé
         if (!user.is_active) {
             return res.status(403).json({ error: "Ce badge a été désactivé." });
         }
 
         const fullName = `${user.first_name} ${user.last_name}`;
 
-        // 🚨 NOUVEAU (Issue 14) : On cherche s'il y a N'IMPORTE QUEL shift en cours (Globalement)
         const openShiftQuery = `
             SELECT s.id, s.user_id, u.first_name, u.last_name
             FROM shifts s
@@ -41,22 +42,23 @@ const processNfcScan = async (req, res) => {
         `;
         const { rows: shiftRows } = await db.query(openShiftQuery);
 
-        // Si une caisse est actuellement ouverte
         if (shiftRows.length > 0) {
             const openShift = shiftRows[0];
 
-            // SCÉNARIO A : C'est le BON jobiste (Il reprend sa caisse)
+            // SCÉNARIO A : Reprise de caisse
             if (openShift.user_id === user.user_id) {
                 const shiftId = openShift.id;
-                console.log(`[SCAN] ${fullName} reprend son shift #${shiftId}`);
+                console.log(`[SCAN] ${fullName} reprend son shift #${shiftId} (Age du scan: ${scanAge}s)`);
                 
-                // 🪄 MAGIE TEMPS RÉEL : On déverrouille le kiosque
-                if (req.io) {
+                // 🔴 CONDITION WEBSOCKET : Uniquement si le jobiste vient de badger
+                if (isLiveScan && req.io) {
                     req.io.emit('unlock_session', {
                         action: 'resume', 
                         jobisteName: fullName,
                         shift_id: shiftId
                     });
+                } else {
+                    console.log(`[INFO] Synchro silencieuse : pas de déverrouillage écran pour un vieux scan.`);
                 }
 
                 return res.status(200).json({
@@ -67,11 +69,9 @@ const processNfcScan = async (req, res) => {
                 });
 
             } else {
-                // 🛑 SCÉNARIO B : CONFLIT ! Un autre jobiste essaie de badger
+                // SCÉNARIO B : Conflit
                 const occupantName = `${openShift.first_name} ${openShift.last_name}`;
                 console.warn(`[SCAN] Conflit : ${fullName} a badgé, mais la caisse est occupée par ${occupantName}`);
-                
-                // On bloque l'accès (HTTP 403)
                 return res.status(403).json({ 
                     error: "CAISSE_OCCUPEE",
                     message: `Caisse occupée par ${occupantName}`
@@ -79,7 +79,8 @@ const processNfcScan = async (req, res) => {
             }
 
         } else {
-            // SCÉNARIO C : PAS DE SHIFT OUVERT -> On en crée un nouveau (Check-in)
+            // SCÉNARIO C : Nouveau shift
+            // Idéalement on devrait insérer le timestamp de l'ESP32 ici avec to_timestamp($2), mais on garde CURRENT_TIMESTAMP pour éviter de casser ton schéma SQL pour l'instant.
             const openNewShiftQuery = `
                 INSERT INTO shifts (user_id, start_time)
                 VALUES ($1, CURRENT_TIMESTAMP)
@@ -87,15 +88,17 @@ const processNfcScan = async (req, res) => {
             `;
             const newShiftResult = await db.query(openNewShiftQuery, [user.user_id]);
             const newShiftId = newShiftResult.rows[0].id;
-            console.log(`[SCAN] Nouveau shift #${newShiftId} ouvert pour ${fullName}`);
+            console.log(`[SCAN] Nouveau shift #${newShiftId} ouvert pour ${fullName} (Age: ${scanAge}s)`);
 
-            // 🪄 MAGIE TEMPS RÉEL : On déverrouille le kiosque
-            if (req.io) {
+            // 🔴 CONDITION WEBSOCKET : Uniquement si le jobiste vient de badger
+            if (isLiveScan && req.io) {
                 req.io.emit('unlock_session', {
                     action: 'checkin',
                     jobisteName: fullName,
                     shift_id: newShiftId
                 });
+            } else {
+                console.log(`[INFO] Synchro silencieuse : pas de déverrouillage écran pour un vieux scan.`);
             }
 
             return res.status(200).json({

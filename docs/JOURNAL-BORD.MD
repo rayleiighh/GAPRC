@@ -352,3 +352,30 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Exports Comptables (`SettingsTab.tsx`) :** Mise à jour des algorithmes de génération de PDF (`jspdf-autotable`) et de CSV pour exclure les colonnes obsolètes et inclure le volume horaire presté.
 
 **Valeur pour le TFE :** Démonstration d'une grande agilité projet. Savoir faire un "pivot" et supprimer du code obsolète pour améliorer l'Expérience Utilisateur (UX) est une compétence rare et très recherchée en entreprise.
+
+## 🔵 COULD-5 [Hardware] Synchronisation différée ESP32 — Background Retry au retour réseau (#X)
+
+**Objectif :** Garantir la résilience du Kiosque face aux coupures Wi-Fi du Hall Omnisport en permettant à la badgeuse matérielle de conserver les pointages et de les resynchroniser automatiquement sans intervention humaine.
+
+**Technologies et Librairies utilisées :**
+- **C++ (PlatformIO) :** Framework Arduino pour ESP32.
+- **`Preferences.h` (NVS) :** Partition de mémoire flash non volatile (les données survivent même si l'ESP32 est débranché physiquement).
+
+**Réalisations techniques :**
+- Implémentation du stockage local (`saveScanOffline`) : Si la requête HTTP vers Node.js échoue, l'UID et le `timestamp` (NTP) sont concaténés et sauvegardés en flash.
+- Création du mécanisme de *Background Retry* (`syncOfflineScans`) : Une routine asynchrone s'exécute toutes les 10 secondes. Dès que `WiFi.status() == WL_CONNECTED`, l'ESP32 lit le tampon, itère sur les scans, les envoie au backend, et purge la mémoire (Idempotence) une fois le code HTTP 200 reçu.
+
+**Statut :** COULD-5 validée. Le matériel est 100% tolérant aux pannes réseau.
+
+## 🔧 FIX [API] Prévention des conflits WebSockets en resynchronisation matérielle
+
+**Objectif :** Résoudre un bug critique d'architecture découvert lors des tests d'intégration avec la badgeuse ESP32. Lors du retour du réseau, l'envoi en rafale (Burst) des pointages stockés en mémoire NVS déclenchait de multiples ouvertures de session simultanées sur la PWA, rendant l'interface React instable.
+
+**Réalisations techniques :**
+- **Analyse du Timestamp :** Modification du contrôleur `processNfcScan` pour exploiter le paramètre `timestamp` (horloge NTP) envoyé par l'ESP32.
+- **Logique de filtrage (Live vs Différé) :** Création d'un algorithme calculant l'âge du scan (`Math.abs(now - timestamp)`). 
+- **Synchronisation silencieuse :** Si un scan a moins de 60 secondes, il est considéré comme "Live" et déclenche l'événement en temps réel `req.io.emit('unlock_session')`. S'il est plus vieux, il est inséré silencieusement dans PostgreSQL pour la comptabilité, sans perturber l'écran Kiosque actuel.
+
+**Valeur pour le TFE :** Démonstration d'une réelle maîtrise des systèmes asynchrones (IoT vers Web). L'API est désormais capable de différencier le comportement humain en direct d'une synchronisation machine en arrière-plan.
+
+**Statut :** Fix validé. La PWA reste parfaitement stable même lors d'une purge matérielle de dizaines de pointages différés.
