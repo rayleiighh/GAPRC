@@ -445,3 +445,14 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Colorimétrie :** Application du dégradé officiel de la charte graphique (`from-red-600 to-red-700`) et des ombres douces colorées (`shadow-red-600/20`) sur les Call-to-Action (CTA) pour guider visuellement l'utilisateur.
 
 **Statut :** Interface finalisée et validée. L'expérience utilisateur est unifiée.
+
+## 🔵 COULD-2 [Tests] Collection Postman — Tests d’intégration E2E API (#X)
+
+**Objectif :** Valider l'intégrité de l'API et prouver le bon fonctionnement du flux de données complet (Base de données <-> Backend Node.js <-> Sécurité JWT) via des tests d'intégration reproductibles.
+
+**Réalisations techniques :**
+- **Création de la Collection V2.1 :** Exportation d'un fichier Postman documentant toutes les routes névralgiques du système (Login, Scans NFC, Gestion RH, Finance).
+- **Automatisation JWT :** Implémentation d'un script de test Postman (`pm.environment.set`) qui intercepte le token de connexion de l'admin et l'injecte automatiquement dans les en-têtes (Bearer) des requêtes suivantes.
+- **Portabilité :** Le fichier `gaprc-api.postman_collection.json` est versionné sur Git, permettant à quiconque (ou au jury) d'importer la collection en 1 clic et de tester le backend sans devoir ouvrir l'interface PWA.
+
+**Statut :** Suite de tests d'intégration finalisée. L'API est robuste et auto-documentée.
