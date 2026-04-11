@@ -11,6 +11,7 @@ const transactionsRoutes = require('./routes/transactionsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
+app.set('trust proxy', 1);
 const port = process.env.PORT || 3000;
 
 // 🔴 CONFIGURATION DU SERVEUR HTTP ET SOCKET.IO
