@@ -406,3 +406,20 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Sécurisation de la purge (Background Sync) :** La fonction `syncOfflineScans` considère désormais qu'un vieux pointage est "traité" (et peut être supprimé de la mémoire) même si le serveur répond 400 ou 403, évitant ainsi les blocages de la file d'attente (Deadlocks).
 
 **Valeur pour le TFE :** Démontre une capacité critique d'analyse système. Le couplage entre l'IoT (ESP32) et l'API est désormais parfaitement robuste et tolérant aux erreurs utilisateurs (double-badge) sans compromettre le mécanisme de secours.
+
+## 🔐 [Auth] Flux de réinitialisation de mot de passe (Partie 1 : Demande & Envoi)
+
+**Objectif :** Permettre à la direction de récupérer l'accès à son compte de manière autonome, tout en appliquant une sécurité stricte (Top 10 OWASP) contre les attaques sur la gestion des identités.
+
+**Technologies et Librairies utilisées :**
+- **Node.js `crypto` :** Module natif pour la génération d'entropie (Tokens sécurisés) et le hachage (SHA-256).
+- **`nodemailer` :** Gestionnaire SMTP pour l'envoi d'emails transactionnels.
+- **PostgreSQL :** Ajout des colonnes temporelles et de stockage de tokens (`reset_token`, `reset_token_expires`).
+
+**Réalisations techniques (Security by Design) :**
+- **Protection Anti-Énumération :** La route de demande (`/api/admin/forgot-password`) répond systématiquement un code 200 générique, empêchant un attaquant de tester des listes d'emails pour deviner les utilisateurs inscrits.
+- **Jeton Opaque Haché (Opaque Token) :** Le jeton envoyé par email (en clair dans le lien) n'est **jamais** stocké tel quel dans la base de données. Il est haché en `SHA-256` côté serveur. En cas de fuite de la base de données, les jetons de récupération sont illisibles et inutilisables.
+- **Time-To-Live (TTL) :** Une fenêtre stricte de 15 minutes est appliquée au token via la colonne d'expiration.
+- **Rate Limiting :** La route est protégée par `express-rate-limit` (max 5 requêtes / 15 min) pour prévenir le spamming de la boîte mail du directeur.
+
+**Statut :** Partie 1 validée. Le backend génère et envoie les emails de récupération avec succès.

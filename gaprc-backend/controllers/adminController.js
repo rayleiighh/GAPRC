@@ -1,6 +1,17 @@
 const pool = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
 // POST /api/admin/login
 exports.login = async (req, res) => {
@@ -163,5 +174,71 @@ exports.deleteJobiste = async (req, res) => {
     } catch (error) {
         console.error('Erreur deleteJobiste:', error);
         res.status(500).json({ error: 'Erreur lors de la suppression' });
+    }
+};
+
+// POST /api/admin/forgot-password
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: "L'email est requis." });
+    }
+
+    try {
+        // 1. Vérifier si l'utilisateur existe
+        const userQuery = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+        console.log("🔍 Résultat de la recherche en DB :", userQuery.rows.length, "utilisateur(s) trouvé(s).");
+
+        // 2. SÉCURITÉ ANTI-ÉNUMÉRATION : On répond un message générique même si l'email n'existe pas
+        if (userQuery.rows.length === 0) {
+            return res.status(200).json({ message: "Si cette adresse est liée à un compte, un email a été envoyé." });
+        }
+
+        const user = userQuery.rows[0];
+
+        // 3. GÉNÉRATION CRYPTOGRAPHIQUE : 32 octets aléatoires (imprévisibles)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+
+        // 4. HACHAGE (SHA-256) : On ne stocke jamais le token en clair dans la DB
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+        // 5. EXPIRATION : Valide pour 15 minutes
+        const tokenExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+        // 6. Enregistrement dans la base de données
+        await pool.query(
+            'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3',
+            [hashedToken, tokenExpires, user.id]
+        );
+
+        // 7. Création de l'URL contenant le token EN CLAIR (vers le frontend React)
+        const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
+
+        // 8. Envoi de l'email
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'GAPRC - Réinitialisation de votre mot de passe',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                    <h2 style="color: #333;">Demande de réinitialisation</h2>
+                    <p>Vous avez demandé à réinitialiser votre mot de passe pour le panneau d'administration GAPRC.</p>
+                    <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. <strong>Ce lien expirera dans 15 minutes.</strong></p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Réinitialiser mon mot de passe</a>
+                    </div>
+                    <p style="color: #666; font-size: 14px;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité.</p>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.status(200).json({ message: "Si cette adresse est liée à un compte, un email a été envoyé." });
+
+    } catch (error) {
+        console.error("❌ Erreur forgotPassword:", error);
+        res.status(500).json({ error: "Erreur lors de la demande de réinitialisation." });
     }
 };

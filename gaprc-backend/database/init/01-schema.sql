@@ -6,6 +6,9 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE NOT NULL, -- Indispensable pour la connexion de l'admin
     password_hash VARCHAR(255),         -- Pour stocker le bcrypt de l'admin
     role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'jobiste')),
+    is_active BOOLEAN DEFAULT true,
+    reset_token VARCHAR(255),
+    reset_token_expires TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
