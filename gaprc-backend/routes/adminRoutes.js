@@ -16,6 +16,7 @@ const loginLimiter = rateLimit({
 // CA1 : Route de login (Publique, MAIS protégée par le limiteur !)
 router.post('/login', loginLimiter, adminController.login);
 router.post('/forgot-password', loginLimiter, adminController.forgotPassword);
+router.post('/reset-password', loginLimiter, adminController.resetPassword);
 
 // CA2 : Routes d'administration (Protégées par JWT)
 router.get('/jobistes', verifyToken, adminController.getAllJobistes);

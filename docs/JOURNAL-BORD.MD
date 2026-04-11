@@ -423,3 +423,25 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Rate Limiting :** La route est protégée par `express-rate-limit` (max 5 requêtes / 15 min) pour prévenir le spamming de la boîte mail du directeur.
 
 **Statut :** Partie 1 validée. Le backend génère et envoie les emails de récupération avec succès.
+
+## 🔐 [Auth] Flux de réinitialisation de mot de passe (Partie 2 : Validation & PWA)
+
+**Objectif :** Intégrer l'interface de récupération dans la Progressive Web App et traiter la vérification cryptographique pour finaliser l'autonomie de la direction.
+
+**Réalisations techniques :**
+- **Vues React (PWA) :** Implémentation des composants `ForgotPassword` et `ResetPassword` avec gestion d'état et retours visuels clairs (Success/Error states).
+- **Validation backend (Usage Unique) :** Lors de la soumission du nouveau mot de passe, le backend hache le token reçu de l'URL, le confronte à la base de données (avec vérification du TTL `> NOW()`), hache le nouveau mot de passe (`bcrypt`), et surtout, **détruit le jeton** (`SET reset_token = NULL`). Cela empêche toute attaque par rejeu (Replay Attack).
+- **Nettoyage Prototype :** Suppression du déclencheur logiciel "Simuler un scan" sur la page `KioskIdleScreen`. L'application de caisse est désormais exclusivement couplée au Kiosque matériel ESP32 en production.
+
+**Statut :** Flux de sécurité de bout en bout totalement validé.
+
+## 🎨 [UI/UX] Harmonisation visuelle des écrans d'authentification
+
+**Objectif :** Garantir une cohérence parfaite du Design System de la PWA sur les nouveaux écrans de récupération de compte.
+
+**Réalisations techniques :**
+- **Refactoring des composants :** Ajustement de `ForgotPassword.tsx` pour aligner son ergonomie sur celle de `AdminLogin.tsx`.
+- **Micro-interactions & UX :** Repositionnement du bouton de navigation (ChevronLeft) en flux absolu à l'intérieur de la carte blanche (`rounded-[2rem]`) pour éviter les ruptures de mise en page sur mobile.
+- **Colorimétrie :** Application du dégradé officiel de la charte graphique (`from-red-600 to-red-700`) et des ombres douces colorées (`shadow-red-600/20`) sur les Call-to-Action (CTA) pour guider visuellement l'utilisateur.
+
+**Statut :** Interface finalisée et validée. L'expérience utilisateur est unifiée.

@@ -213,7 +213,7 @@ exports.forgotPassword = async (req, res) => {
         );
 
         // 7. Création de l'URL contenant le token EN CLAIR (vers le frontend React)
-        const resetUrl = `http://localhost:5173/reset-password?token=${resetToken}`;
+        const resetUrl = `http://localhost:4173/reset-password?token=${resetToken}`;
 
         // 8. Envoi de l'email
         const mailOptions = {
@@ -240,5 +240,45 @@ exports.forgotPassword = async (req, res) => {
     } catch (error) {
         console.error("❌ Erreur forgotPassword:", error);
         res.status(500).json({ error: "Erreur lors de la demande de réinitialisation." });
+    }
+};
+
+// POST /api/admin/reset-password
+exports.resetPassword = async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ error: "Le jeton et le nouveau mot de passe sont requis." });
+    }
+
+    try {
+        // 1. Hacher le token reçu depuis l'URL (pour pouvoir le comparer avec la DB)
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        // 2. Chercher l'utilisateur avec ce token ET vérifier que l'expiration est dans le futur (> NOW())
+        const query = 'SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()';
+        const { rows } = await pool.query(query, [hashedToken]);
+
+        if (rows.length === 0) {
+            return res.status(400).json({ error: "Ce lien de réinitialisation est invalide ou a expiré." });
+        }
+
+        const userId = rows[0].id;
+
+        // 3. Hacher le NOUVEAU mot de passe avec bcrypt
+        const salt = await bcrypt.genSalt(10);
+        const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+        // 4. Mettre à jour le mot de passe ET détruire le token (BURN AFTER READING)
+        await pool.query(
+            'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
+            [newPasswordHash, userId]
+        );
+
+        res.status(200).json({ message: "Votre mot de passe a été réinitialisé avec succès." });
+
+    } catch (error) {
+        console.error("❌ Erreur resetPassword:", error);
+        res.status(500).json({ error: "Erreur lors de la réinitialisation du mot de passe." });
     }
 };

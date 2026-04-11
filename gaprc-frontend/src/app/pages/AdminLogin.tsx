@@ -77,6 +77,16 @@ export function AdminLogin() {
                                 />
                             </div>
                         </div>
+                        
+                        <div className="flex justify-end mt-2">
+                            <button 
+                                type="button" 
+                                onClick={() => navigate('/forgot-password')} 
+                                className="text-sm font-semibold text-red-600 hover:text-red-700 hover:underline"
+                            >
+                                Mot de passe oublié ?
+                            </button>
+                        </div>
 
                         {error && (
                             <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-bold">

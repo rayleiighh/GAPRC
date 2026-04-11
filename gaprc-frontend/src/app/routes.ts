@@ -2,7 +2,9 @@ import { createBrowserRouter } from "react-router";
 import { KioskIdleScreen } from "./pages/KioskIdleScreen";
 import { JobisteCheckoutForm } from "./pages/JobisteCheckoutForm";
 import { DirectorDashboard } from "./pages/DirectorDashboard";
-import { AdminLogin } from "./pages/AdminLogin"; // Ajout de l'import
+import { AdminLogin } from "./pages/AdminLogin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 export const router = createBrowserRouter([
   {
@@ -14,8 +16,16 @@ export const router = createBrowserRouter([
     Component: JobisteCheckoutForm,
   },
   {
-    path: "/admin/login", // Nouvelle route
+    path: "/admin/login",
     Component: AdminLogin,
+  },
+  {
+    path: "/forgot-password",
+    Component: ForgotPassword,
+  },
+  {
+    path: "/reset-password",
+    Component: ResetPassword,
   },
   {
     path: "/dashboard",
