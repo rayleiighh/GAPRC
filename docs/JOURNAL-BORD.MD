@@ -456,3 +456,16 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Portabilité :** Le fichier `gaprc-api.postman_collection.json` est versionné sur Git, permettant à quiconque (ou au jury) d'importer la collection en 1 clic et de tester le backend sans devoir ouvrir l'interface PWA.
 
 **Statut :** Suite de tests d'intégration finalisée. L'API est robuste et auto-documentée.
+
+## 🐳 [DevOps] Dockerisation globale & Reverse Proxy (COULD-7 & COULD-15)
+
+**Objectif :** Préparer le code source pour un déploiement continu (CI/CD) sur un VPS en créant un environnement d'exécution conteneurisé, sécurisé (HTTPS) et totalement indépendant de la machine hôte.
+
+**Réalisations techniques :**
+- **Refactoring des variables d'environnement :** Suppression des références codées en dur (`localhost`) dans le Frontend (React) et le Backend (Node.js) au profit de variables dynamiques injectées lors du build ou de l'exécution.
+- **Dockerfiles optimisés :** - Backend : Utilisation de `node:18-alpine` avec installation sélective des dépendances de production (`--omit=dev`).
+  - Frontend : Architecture *Multi-stage build* (Compilation Vite via Node, puis distribution des fichiers statiques via `nginx:alpine`).
+- **Orchestration (Docker Compose) :** Création d'un fichier centralisant 4 services (Base de données, Backend, Frontend, Reverse Proxy). Définition des volumes persistants pour PostgreSQL.
+- **Reverse Proxy Caddy (HTTPS) :** Remplacement de Nginx par Caddy en frontal pour bénéficier du renouvellement automatique des certificats SSL/TLS gratuits via Let's Encrypt. Le proxy redirige le port 443 vers les conteneurs internes appropriés (`/api/*` vers Node, le reste vers React).
+
+**Statut :** Fichiers de configuration prêts. Le projet est "Prod-Ready". En attente du déploiement sur le VPS.
