@@ -458,53 +458,6 @@ export function KioskIdleScreen() {
           </p>
         </div>
 
-        {/* Demo CTA */}
-        <motion.button
-          onClick={() => navigate("/checkout/Rayane")}
-          whileHover={{
-            scale: 1.02,
-            boxShadow: "0 12px 32px rgba(220,38,38,0.38)",
-          }}
-          whileTap={{ scale: 0.98 }}
-          style={{
-            width: "100%",
-            padding: "17px 24px",
-            background:
-              "linear-gradient(160deg, #dc2626 0%, #b91c1c 100%)",
-            color: "white",
-            border: "none",
-            borderRadius: 14,
-            fontWeight: 700,
-            fontSize: "0.95rem",
-            cursor: "pointer",
-            letterSpacing: "-0.01em",
-            boxShadow:
-              "0 8px 24px rgba(220,38,38,0.28), 0 2px 6px rgba(220,38,38,0.16)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            transition: "box-shadow 0.2s",
-          }}
-        >
-          <span style={{ fontSize: "1rem" }}>🪪</span>
-          Simuler un scan de badge
-          <span
-            style={{
-              marginLeft: "auto",
-              fontSize: "0.65rem",
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              color: "rgba(255,255,255,0.55)",
-              background: "rgba(255,255,255,0.12)",
-              padding: "2px 7px",
-              borderRadius: 6,
-            }}
-          >
-            DÉMO
-          </span>
-        </motion.button>
-
         {/* Director access */}
         <p
           style={{
