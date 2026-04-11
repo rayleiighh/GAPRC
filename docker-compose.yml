@@ -18,7 +18,7 @@ services:
       - DB_HOST=db
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_NAME=${DB_NAME:-gaprc}
+      - POSTGRES_DB=${DB_NAME:-gaprc}
       - JWT_SECRET=${JWT_SECRET:-ton_secret_jwt_super_securise_123}
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
