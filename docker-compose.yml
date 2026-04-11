@@ -1,0 +1,57 @@
+# docker-compose.yml (à la racine)
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-gaprc}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./gaprc-backend/database/init:/docker-entrypoint-initdb.d
+
+  backend:
+    build: ./gaprc-backend
+    restart: always
+    environment:
+      - DB_HOST=db
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-gaprc}
+      - JWT_SECRET=${JWT_SECRET:-ton_secret_jwt_super_securise_123}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - FRONTEND_URL=https://${DOMAIN_NAME}
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./gaprc-frontend
+      args: 
+        - VITE_API_URL=https://${DOMAIN_NAME}
+    restart: always
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports:
+      - "80:80"     # Port HTTP standard
+      - "443:443"   # Port HTTPS sécurisé
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

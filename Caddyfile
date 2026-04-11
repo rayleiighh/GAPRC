@@ -1,0 +1,10 @@
+gaprc-app.com {
+    # 1. On redirige toutes les requêtes /api vers Node.js
+    reverse_proxy /api/* backend:3000
+    
+    # 2. On redirige les WebSockets vers Node.js
+    reverse_proxy /socket.io/* backend:3000
+
+    # 3. On redirige tout le reste (l'interface) vers React/Nginx
+    reverse_proxy /* frontend:80
+}

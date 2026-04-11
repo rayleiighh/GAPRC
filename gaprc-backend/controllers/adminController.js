@@ -213,7 +213,8 @@ exports.forgotPassword = async (req, res) => {
         );
 
         // 7. Création de l'URL contenant le token EN CLAIR (vers le frontend React)
-        const resetUrl = `http://localhost:4173/reset-password?token=${resetToken}`;
+        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:4173';
+        const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
         // 8. Envoi de l'email
         const mailOptions = {
