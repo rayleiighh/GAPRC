@@ -469,3 +469,14 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Reverse Proxy Caddy (HTTPS) :** Remplacement de Nginx par Caddy en frontal pour bénéficier du renouvellement automatique des certificats SSL/TLS gratuits via Let's Encrypt. Le proxy redirige le port 443 vers les conteneurs internes appropriés (`/api/*` vers Node, le reste vers React).
 
 **Statut :** Fichiers de configuration prêts. Le projet est "Prod-Ready". En attente du déploiement sur le VPS.
+
+## 🚀 [Prod] Validation du déploiement et des flux IoT (#27, #43)
+
+**Objectif :** Tester le comportement de l'application en conditions réelles de production après la mise en place du HTTPS et de Docker.
+
+**Réalisations techniques :**
+- **Test de Résilience :** Utilisation de Postman pour simuler une requête provenant de l'ESP32 (`/api/scan`).
+- **Logique Temporelle :** Validation du filtre anti-ghosting dans `scanController.js` qui empêche l'ouverture intempestive de sessions lors d'une synchronisation de vieux logs.
+- **WebSocket over HTTPS :** Confirmation que Caddy gère correctement les WebSockets (`wss://`) permettant à l'interface PWA de réagir instantanément aux scans live.
+
+**Résultat :** Le système est stable. La latence entre le scan (Postman) et l'affichage (PWA) est quasi nulle.S
