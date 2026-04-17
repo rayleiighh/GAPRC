@@ -461,29 +461,33 @@ export function DirectorDashboard() {
               {/* ─── GRAPHIQUE ─── */}
               <RevenueChart shifts={filteredShifts} />
 
-              {/* Date filter */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Filter style={{ width: 14, height: 14, color: "#9ca3af", flexShrink: 0 }} />
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button onClick={() => setDateFilter("all")} style={{ padding: "6px 16px", borderRadius: 99,
-                    border: dateFilter === "all" ? "none" : "1.5px solid #e5e7eb",
-                    background: dateFilter === "all" ? "#111827" : "white",
-                    color: dateFilter === "all" ? "white" : "#6b7280",
-                    fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
-                    Toutes les dates
-                  </button>
-                  {uniqueDates.map(d => (
-                    <button key={d} onClick={() => setDateFilter(d)} style={{ padding: "6px 16px", borderRadius: 99,
-                      border: dateFilter === d ? "none" : "1.5px solid #e5e7eb",
-                      background: dateFilter === d ? "#dc2626" : "white",
-                      color: dateFilter === d ? "white" : "#6b7280",
-                      fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}>
-                      {fmtDate(d)}
-                    </button>
+              {/* 🔴 NOUVEAU FILTRE DE DATES (Menu Déroulant) */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+                <Filter style={{ width: 18, height: 18, color: "#6b7280" }} />
+                <select 
+                  value={dateFilter} 
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: "12px",
+                    border: "1px solid #e5e7eb",
+                    background: "white",
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                    outline: "none",
+                    cursor: "pointer",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                  }}
+                >
+                  <option value="all">Toutes les dates</option>
+                  <option disabled>──────────</option>
+                  {/* uniqueDates est ton tableau de dates existant */}
+                  {uniqueDates.map(date => (
+                    <option key={date} value={date}>{fmtDate(date)}</option>
                   ))}
-                </div>
+                </select>
               </div>
-
               {/* DATA TABLE */}
               <div style={{ background: "#ffffff", borderRadius: 20, overflow: "hidden",
                 boxShadow: "0 4px 6px rgba(0,0,0,0.03), 0 24px 48px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.05)" }}>

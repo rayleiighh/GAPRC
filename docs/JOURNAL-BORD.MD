@@ -492,6 +492,20 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Résultat :** L'application est prête à être servie via l'adresse IP locale de la machine hôte.
 
+
+## 🎨 [UI/UX] Optimisation des filtres et restructuration des paramètres
+
+**Objectif :** Améliorer l'ergonomie (UX) du Dashboard directeur face à la croissance des données et préparer l'interface pour les fonctionnalités de sécurité/audit.
+
+**Réalisations techniques :**
+- **Filtres intelligents :** Passage à des contrôles natifs (`<select>` et `<input type="month">`) pour éviter l'encombrement horizontal de l'interface lors de l'accumulation de données sur plusieurs mois/années.
+- **Refonte des Paramètres :** Nettoyage complet de `SettingsTab.tsx`. Suppression des éléments de "maquette" non fonctionnels (notifications, thèmes) pour se concentrer sur la valeur métier : Export comptable et Sécurité.
+- **Préparation Audit :** Intégration visuelle de la section "Journal d'Audit" pour anticiper la mise en conformité RGPD (Issue #47).
+- **Test On-Premise :** Validation du rendu et des interactions sur mobile via l'accès réseau local (192.168.0.138).
+
+**Statut :** Interface directeur stabilisée et "Prod-Ready". Prochaine étape : Sécurisation du firmware ESP32 pour le LAN.
+
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 

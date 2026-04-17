@@ -145,11 +145,11 @@ function AssignBadgeModal({ jobiste, onClose, onRefresh }: { jobiste: any; onClo
 
 /* ─── Jobistes HR Tab Principal ──────────────────────────────────── */
 export function JobistesTab({ shifts }: { shifts: any[] }) {
-  const [period, setPeriod] = useState<"mars-2026" | "fevrier-2026" | "3-mois">("mars-2026");
   const [selectedJobiste, setSelectedJobiste] = useState<string | null>(null);
   const [dbJobistes, setDbJobistes] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [badgeModalFor, setBadgeModalFor] = useState<any | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
 
   const fetchJobistes = async () => {
     const token = localStorage.getItem("adminToken");
@@ -170,17 +170,9 @@ export function JobistesTab({ shifts }: { shifts: any[] }) {
     } catch (err) { console.error("Erreur suppression", err); }
   };
 
-  const periodOptions = [
-    { value: "mars-2026",    label: "Mars 2026" },
-    { value: "fevrier-2026", label: "Février 2026" },
-    { value: "3-mois",       label: "3 derniers mois" },
-  ] as const;
-
-  const filteredShifts = shifts.filter(s => {
-    if (period === "mars-2026")    return s.date.startsWith("2026-03");
-    if (period === "fevrier-2026") return s.date.startsWith("2026-02");
-    return s.date >= "2026-01-01";
-  });
+  const filteredShifts = selectedMonth 
+  ? shifts.filter(s => s.date.startsWith(selectedMonth))
+  : shifts;
 
   const getStats = (fullName: string) => {
     const jobisteShifts = filteredShifts.filter(s => s.jobiste === fullName);
@@ -198,10 +190,30 @@ export function JobistesTab({ shifts }: { shifts: any[] }) {
           <p style={{ fontSize: "0.8rem", color: "#9ca3af", marginTop: 2 }}>Gérez les accès RFID et visualisez les prestations</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "white", borderRadius: 12, padding: "4px", border: "1px solid #e5e7eb", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-            {periodOptions.map(opt => (
-              <button key={opt.value} onClick={() => setPeriod(opt.value)} style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: period === opt.value ? 700 : 500, background: period === opt.value ? "#111827" : "transparent", color: period === opt.value ? "white" : "#6b7280", transition: "all 0.15s" }}>{opt.label}</button>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, background: "white", padding: "12px 20px", borderRadius: 16, border: "1px solid #f3f4f6" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase" }}>Filtrer par mois :</span>
+            <input 
+              type="month" 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "10px",
+                border: "1.5px solid #e5e7eb",
+                fontSize: "0.9rem",
+                fontWeight: 600,
+                outline: "none",
+                cursor: "pointer"
+              }}
+            />
+            {selectedMonth && (
+              <button 
+                onClick={() => setSelectedMonth("")}
+                style={{ padding: "8px 12px", border: "none", background: "#fee2e2", color: "#dc2626", borderRadius: "10px", cursor: "pointer", fontWeight: 700, fontSize: "0.8rem" }}
+              >
+                Réinitialiser
+              </button>
+            )}
           </div>
           <button onClick={() => setShowAddModal(true)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 10, background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "white", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem", boxShadow: "0 4px 12px rgba(220,38,38,0.2)" }}>
             <UserPlus style={{ width: 16, height: 16 }} /> Ajouter un jobiste
