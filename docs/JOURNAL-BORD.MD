@@ -479,4 +479,22 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - **Logique Temporelle :** Validation du filtre anti-ghosting dans `scanController.js` qui empêche l'ouverture intempestive de sessions lors d'une synchronisation de vieux logs.
 - **WebSocket over HTTPS :** Confirmation que Caddy gère correctement les WebSockets (`wss://`) permettant à l'interface PWA de réagir instantanément aux scans live.
 
-**Résultat :** Le système est stable. La latence entre le scan (Postman) et l'affichage (PWA) est quasi nulle.S
+**Résultat :** Le système est stable. La latence entre le scan (Postman) et l'affichage (PWA) est quasi nulle
+
+## 🔌 [DevOps] Reconfiguration du proxy Caddy pour le LAN (COULD-18 #49)
+
+**Objectif :** Adapter le Reverse Proxy Caddy pour qu'il fonctionne sur un réseau local fermé (LAN) sans nécessiter de nom de domaine public ni de certificat TLS externe (Let's Encrypt).
+
+**Réalisations techniques :**
+- Suppression du bloc `tls` (Let's Encrypt) dans le `Caddyfile`.
+- Configuration de Caddy pour écouter explicitement sur le port 80 (HTTP).
+- Mise à jour du `docker-compose.yml` pour injecter des URL commençant par `http://` au lieu de `https://` dans le Frontend et le Backend.
+
+**Résultat :** L'application est prête à être servie via l'adresse IP locale de la machine hôte.
+
+## A MODIFIER : 
+- Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
+- Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 
+- Modifier le code de l'esp pour la partie prod
+- IMPORTANT : Garder l'éventualité de changer, de ne plus heberger sur un serveur etc mais de laisser en local pour sauver de l'argent au hall car le VPS et le nom de domaine coutent cher. En local il faudra trouver une solution car le pc des etudiants n'est pas le même que celui du directeur.
+- Bien regarder au niveau des petits détails comme les filtres dans la page admin etc

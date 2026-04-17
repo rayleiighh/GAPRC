@@ -22,7 +22,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-ton_secret_jwt_super_securise_123}
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
-      - FRONTEND_URL=https://${DOMAIN_NAME}
+      - FRONTEND_URL=http://${DOMAIN_NAME}
     depends_on:
       - db
 
@@ -30,7 +30,7 @@ services:
     build:
       context: ./gaprc-frontend
       args: 
-        - VITE_API_URL=https://${DOMAIN_NAME}
+        - VITE_API_URL=http://${DOMAIN_NAME}
     restart: always
     depends_on:
       - backend

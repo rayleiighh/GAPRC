@@ -1,10 +1,24 @@
-gaprc-app.com {
-    # 1. On redirige toutes les requêtes /api vers Node.js
-    reverse_proxy /api/* backend:3000
+# Caddyfile (Configuration Réseau Local - On-Premise)
+# On écoute sur le port 80 en mode HTTP pour le réseau local
+http://{$DOMAIN_NAME}:80 {
     
-    # 2. On redirige les WebSockets vers Node.js
-    reverse_proxy /socket.io/* backend:3000
+    # 🔴 API (Node.js)
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
 
-    # 3. On redirige tout le reste (l'interface) vers React/Nginx
-    reverse_proxy /* frontend:80
+    # 🔴 Socket.io (WebSockets)
+    handle /socket.io/* {
+        reverse_proxy backend:3000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 🔴 PWA (Vite/Nginx)
+    handle {
+        reverse_proxy frontend:80
+    }
 }
