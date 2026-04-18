@@ -551,6 +551,17 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Bilan :** Résilience des données validée. Les pannes matérielles ne peuvent plus causer de perte de données supérieure à 24 heures. Issue clôturée.
 
+## 🚀 [DevOps] CI/CD adapté à l'architecture On-Premise (COULD-21 #52)
+
+**Objectif :** Automatiser les contrôles qualité du code (CI) et offrir au client une méthode de mise à jour autonome et sans friction (CD local).
+
+**Réalisations techniques :**
+- **Intégration Continue (CI) :** Implémentation d'un workflow GitHub Actions (Ubuntu Node 18) exécutant deux jobs parallèles : la validation du Backend (Jest) et la compilation du Frontend (Vite).
+- **Déploiement Continu Local (CD) :** Création d'un script `batch` exécutable encapsulant les commandes de synchronisation `git pull` et d'orchestration `docker compose up --build`.
+- **Gestion des ressources :** Ajout de la commande `docker image prune -f` dans le script de mise à jour pour éviter l'accumulation d'images orphelines sur le disque dur de la machine hôte.
+
+**Bilan :** Le cycle de développement est maintenant entièrement professionnel. Les régressions sont bloquées par GitHub, et les mises à jour en production se font en un seul clic par le client.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 
