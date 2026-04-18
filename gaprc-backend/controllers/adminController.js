@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { logAudit } = require('../utils/audit');
 
 
 const transporter = nodemailer.createTransport({
@@ -120,7 +121,7 @@ exports.addJobiste = async (req, res) => {
 
 // 3. Assigner ou mettre à jour un badge RFID (CA3)
 exports.assignBadge = async (req, res) => {
-    const { user_id } = req.params;
+    const { id: user_id } = req.params;
     const { nfc_uid } = req.body;
 
     if (!nfc_uid) {
@@ -143,6 +144,15 @@ exports.assignBadge = async (req, res) => {
         `;
         const { rows } = await client.query(insertQuery, [nfc_uid, user_id]);
 
+        await logAudit(
+            'ASSIGN_BADGE',
+            'user',
+            user_id,
+            req.user?.id ? `admin:${req.user.id}` : 'admin:unknown',
+            { nfc_uid },
+            client
+        );
+
         await client.query('COMMIT');
         res.status(200).json({ message: 'Badge assigné avec succès', badge: rows[0] });
     } catch (error) {
@@ -162,6 +172,30 @@ exports.deleteJobiste = async (req, res) => {
     const { id } = req.params;
 
     try {
+        const userQuery = `
+            SELECT id, first_name, last_name, email
+            FROM users
+            WHERE id = $1 AND role = $2
+        `;
+        const userResult = await pool.query(userQuery, [id, 'jobiste']);
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Jobiste introuvable' });
+        }
+
+        const targetUser = userResult.rows[0];
+
+        await logAudit(
+            'DELETE_USER',
+            'user',
+            targetUser.id,
+            req.user?.id ? `admin:${req.user.id}` : 'admin:unknown',
+            {
+                name: `${targetUser.first_name} ${targetUser.last_name}`,
+                email: targetUser.email,
+            }
+        );
+
         // Le ON DELETE CASCADE dans la DB s'occupera de supprimer son badge et ses historiques !
         const query = 'DELETE FROM users WHERE id = $1 AND role = $2 RETURNING id';
         const { rowCount } = await pool.query(query, [id, 'jobiste']); // Sécurité: on s'assure qu'on ne supprime qu'un jobiste
@@ -287,7 +321,15 @@ exports.resetPassword = async (req, res) => {
 // GET /api/admin/audit
 exports.getAuditLogs = async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50');
+        const parsedLimit = Number.parseInt(req.query.limit, 10);
+        const parsedOffset = Number.parseInt(req.query.offset, 10);
+        const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50;
+        const offset = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0;
+
+        const result = await pool.query(
+            'SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+            [limit, offset]
+        );
         res.status(200).json(result.rows);
     } catch (error) {
         console.error('Erreur fetch audit :', error);

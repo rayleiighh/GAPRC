@@ -20,27 +20,70 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: Element
 export function SettingsTab({ shifts }: { shifts: any[] }) {
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingAudit, setLoadingAudit] = useState(true);
+  const [loadingMoreAudit, setLoadingMoreAudit] = useState(false);
+  const [hasMoreAudit, setHasMoreAudit] = useState(true);
+  const AUDIT_PAGE_SIZE = 20;
+
+  const fetchAudit = async (offset: number, append = false) => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/admin/audit?limit=${AUDIT_PAGE_SIZE}&offset=${offset}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Impossible de récupérer les logs d'audit");
+      }
+
+      const pageLogs = await res.json();
+      setLogs((prev) => (append ? [...prev, ...pageLogs] : pageLogs));
+      setHasMoreAudit(pageLogs.length === AUDIT_PAGE_SIZE);
+    } catch (err) {
+      console.error("Erreur fetch audit", err);
+      if (!append) {
+        setLogs([]);
+      }
+      setHasMoreAudit(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAudit = async () => {
+    const loadInitialAudit = async () => {
       try {
-        const token = localStorage.getItem("adminToken");
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/audit`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.ok) {
-          setLogs(await res.json());
-        }
-      } catch (err) {
-        console.error("Erreur fetch audit", err);
+        await fetchAudit(0, false);
       } finally {
         setLoadingAudit(false);
       }
     };
 
-    fetchAudit();
+    loadInitialAudit();
   }, []);
+
+  const loadMoreAudit = async () => {
+    if (loadingMoreAudit || !hasMoreAudit) return;
+    setLoadingMoreAudit(true);
+    try {
+      await fetchAudit(logs.length, true);
+    } finally {
+      setLoadingMoreAudit(false);
+    }
+  };
+
+  const downloadAuditJson = () => {
+    if (logs.length === 0) return;
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audit_gaprc_${new Date().toISOString().split("T")[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const exportCSV = () => {
     if (shifts.length === 0) return alert("Aucune donnée à exporter.");
@@ -125,48 +168,123 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
 
       <Section title="Journal d'Audit (RGPD)" icon={Database}>
         <div style={{ padding: "20px 28px", background: "#f9fafb" }}>
-          <h4 style={{ fontSize: "0.9rem", fontWeight: 700, margin: "0 0 16px 0", color: "#374151" }}>Historique des actions sensibles</h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+            <h4 style={{ fontSize: "0.9rem", fontWeight: 700, color: "#374151", margin: 0 }}>Traçabilité des actions</h4>
+            <span style={{ fontSize: "0.7rem", color: "#6b7280", fontWeight: 500 }}>{logs.length} derniers événements</span>
+          </div>
 
-          {loadingAudit ? (
-            <p style={{ fontSize: "0.8rem", color: "#6b7280" }}>Chargement des logs...</p>
-          ) : logs.length === 0 ? (
-            <p style={{ fontSize: "0.8rem", color: "#6b7280" }}>Aucun événement enregistré.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "300px", overflowY: "auto" }}>
-              {logs.map((log) => (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              maxHeight: "320px",
+              overflowY: "auto",
+              paddingRight: "8px",
+              borderRadius: "12px",
+            }}
+          >
+            {loadingAudit ? (
+              <p style={{ fontSize: "0.8rem", color: "#6b7280", textAlign: "center", padding: 20 }}>Chargement...</p>
+            ) : logs.length === 0 ? (
+              <p style={{ fontSize: "0.8rem", color: "#6b7280", textAlign: "center", padding: 20 }}>Aucun événement enregistré.</p>
+            ) : (
+              logs.map((log: any) => (
                 <div
                   key={log.id}
                   style={{
-                    padding: "10px",
+                    padding: "12px",
                     background: "white",
-                    borderRadius: 8,
+                    borderRadius: 10,
                     border: "1px solid #e5e7eb",
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    flexDirection: "column",
+                    gap: 4,
                   }}
                 >
-                  <div>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 700, margin: 0, color: "#111827" }}>
-                      {log.action}{" "}
-                      <span style={{ color: "#6b7280", fontWeight: 400 }}>
-                        sur {log.entity} #{log.entity_id}
-                      </span>
-                    </p>
-                    <p style={{ fontSize: "0.7rem", color: "#6b7280", margin: "2px 0 0 0" }}>Par: {log.performed_by}</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 800,
+                        color: log.action.includes("DELETE") ? "#ef4444" : "#111827",
+                        background: log.action.includes("DELETE") ? "#fef2f2" : "#f3f4f6",
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      {log.action}
+                    </span>
+                    <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
+                      {new Date(log.created_at).toLocaleString("fr-FR", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
-                  <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
-                    {new Date(log.created_at).toLocaleString("fr-FR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+
+                  <p style={{ fontSize: "0.8rem", margin: 0, color: "#4b5563" }}>
+                    Cible : <strong>{log.entity} #{log.entity_id}</strong>
+                  </p>
+                  <p style={{ fontSize: "0.75rem", margin: 0, color: "#6b7280" }}>Par : {log.performed_by}</p>
+                  {log.details && (
+                    <pre
+                      style={{
+                        fontSize: "0.65rem",
+                        color: "#6b7280",
+                        background: "#f8fafc",
+                        padding: "4px 8px",
+                        borderRadius: 4,
+                        margin: "4px 0 0 0",
+                        overflowX: "auto",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {JSON.stringify(log.details)}
+                    </pre>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
+
+          <div style={{ marginTop: 16, display: "flex", justifyContent: "center", gap: 12 }}>
+            <button
+              onClick={loadMoreAudit}
+              disabled={loadingAudit || loadingMoreAudit || !hasMoreAudit}
+              style={{
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+                background: "white",
+                color: "#374151",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                cursor: loadingAudit || loadingMoreAudit || !hasMoreAudit ? "not-allowed" : "pointer",
+                opacity: loadingAudit || loadingMoreAudit || !hasMoreAudit ? 0.6 : 1,
+              }}
+            >
+              {loadingMoreAudit ? "Chargement..." : hasMoreAudit ? "Voir plus" : "Fin de l'historique"}
+            </button>
+
+            <button
+              onClick={downloadAuditJson}
+              disabled={logs.length === 0}
+              style={{
+                background: "none",
+                border: "none",
+                color: logs.length === 0 ? "#9ca3af" : "#4f46e5",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                cursor: logs.length === 0 ? "not-allowed" : "pointer",
+              }}
+            >
+              Télécharger l'historique (JSON)
+            </button>
+          </div>
         </div>
       </Section>
     </motion.div>

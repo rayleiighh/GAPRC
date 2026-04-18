@@ -516,6 +516,17 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Bilan :** Le système est désormais capable de prouver "Qui a fait quoi et quand", sécurisant ainsi la responsabilité du gérant face aux potentielles erreurs comptables des jobistes. L'issue #47 est clôturée.
 
+## 🛡️ [Sécurité] Finalisation de la traçabilité RGPD (COULD-17 #47)
+
+**Objectif :** Couvrir l'ensemble des actions sensibles et assurer une consultation ergonomique pour le directeur.
+
+**Réalisations techniques :**
+- **Extension des logs :** Toutes les modifications administratives (badges, suppressions) sont désormais journalisées via `logAudit`.
+- **Optimisation UI :** Implémentation d'une "Scrollable Audit Console" dans les paramètres. La zone est limitée à 320px de hauteur, ce qui permet de consulter des milliers de logs sans impacter la structure de la page.
+- **Typage visuel :** Les actions de suppression apparaissent désormais en rouge pour attirer l'attention du directeur lors de la relecture des logs.
+
+**Bilan :** L'application répond désormais aux standards de conformité de traçabilité. L'issue #47 est officiellement terminée.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 
