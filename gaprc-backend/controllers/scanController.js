@@ -110,6 +110,29 @@ const processNfcScan = async (req, res) => {
         }
 
     } catch (error) {
+        if (error.code === '23505') {
+            try {
+                const fallbackQuery = `
+                    SELECT s.id
+                    FROM shifts s
+                    JOIN badges b ON b.user_id = s.user_id
+                    WHERE b.nfc_uid = $1 AND s.end_time IS NULL
+                    LIMIT 1
+                `;
+                const { rows } = await db.query(fallbackQuery, [nfc_uid]);
+
+                if (rows.length > 0) {
+                    return res.status(200).json({
+                        message: 'Session déjà ouverte (idempotence concurrence).',
+                        action: 'resume',
+                        shift_id: rows[0].id,
+                    });
+                }
+            } catch (fallbackError) {
+                console.error('❌ Erreur fallback sur conflit de scan:', fallbackError);
+            }
+        }
+
         console.error("❌ Erreur lors du scan NFC:", error);
         res.status(500).json({ error: "Erreur interne du serveur." });
     }

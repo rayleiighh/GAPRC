@@ -1,4 +1,7 @@
-# Fichiers d'environnement (Secrets)
-.env
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+
 /gaprc-backend/node_modules
 /backups/

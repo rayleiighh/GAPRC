@@ -68,3 +68,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     details JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Sécurité (Race Condition) : un jobiste ne peut avoir qu'un seul shift ouvert à la fois
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_shift_per_user
+ON shifts (user_id)
+WHERE end_time IS NULL;

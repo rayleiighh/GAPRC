@@ -562,6 +562,17 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Bilan :** Le cycle de développement est maintenant entièrement professionnel. Les régressions sont bloquées par GitHub, et les mises à jour en production se font en un seul clic par le client.
 
+## 🛡️ [Base de Données] Résolution de la "Race Condition" du Kiosque (Double-Scan)
+
+**Objectif :** Empêcher la création de shifts en double si l'ESP32 envoie deux requêtes simultanées ou si un étudiant badge deux fois de suite très rapidement.
+
+**Réalisations techniques :**
+- **Verrouillage SQL (Fondation) :** Création d'une contrainte d'unicité partielle stricte directement dans PostgreSQL : `CREATE UNIQUE INDEX idx_one_active_shift_per_user ON shifts (user_id) WHERE end_time IS NULL;`. La base de données refuse désormais physiquement l'état d'incohérence.
+- **Graceful Degradation (Backend) :** Mise à jour de `scanController.js` pour intercepter le code d'erreur `23505` (Violation de contrainte unique). Au lieu de crasher, l'API renvoie de manière transparente les données du shift déjà ouvert.
+- **Validation QA :** Tests réalisés directement dans le conteneur Docker prouvant le rejet effectif de la double insertion et la reprise du flux normal après clôture.
+
+**Bilan :** L'intégrité comptable des caisses est totalement sécurisée.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 
