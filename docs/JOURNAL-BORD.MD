@@ -573,6 +573,22 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Bilan :** L'intégrité comptable des caisses est totalement sécurisée.
 
+## 🟡 [PWA] Robustesse Kiosque - Guard shift_id invalide (Quick Win TFE)
+
+**Objectif :** Empêcher les clôtures de caisse sans shift actif (cas localStorage vide/corrompu) qui pouvaient envoyer un `shift_id = 0`.
+
+**Réalisations techniques :**
+- Mise à jour de `JobisteCheckoutForm.tsx` avec un garde-fou avant création du payload de clôture.
+- Ajout d'une validation stricte : `if (!Number.isInteger(shift_id) || shift_id <= 0)`.
+- En cas d'état invalide : affichage d'un message utilisateur puis redirection vers l'écran kiosque (`/`) pour forcer un nouveau scan badge.
+
+**Impact :**
+- Évite les requêtes de clôture incohérentes.
+- Réduit les erreurs silencieuses côté terrain.
+- Renforce la fiabilité du flux Offline-First sans refactor lourd.
+
+**Statut :** Correctif appliqué, prêt à commit en lot isolé.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 

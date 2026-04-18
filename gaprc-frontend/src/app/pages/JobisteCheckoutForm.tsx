@@ -154,6 +154,12 @@ export function JobisteCheckoutForm() {
 
     const shift_id = parseInt(localStorage.getItem("current_shift_id") || "0", 10);
 
+    if (!Number.isInteger(shift_id) || shift_id <= 0) {
+      alert("Aucun shift actif détecté. Veuillez rescanner votre badge.");
+      navigate("/");
+      return;
+    }
+
     const now = new Date();
     
     // Date d'arrivée
