@@ -1,0 +1,52 @@
+name: GAPRC CI Pipeline
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-backend:
+    name: Build & Test Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./gaprc-backend
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: ./gaprc-backend/package-lock.json
+
+      - name: Installation des dependances
+        run: npm ci
+
+      - name: Exécution des tests
+        run: npm test
+
+  build-frontend:
+    name: Build Frontend (Vite/React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./gaprc-frontend
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: ./gaprc-frontend/package-lock.json
+
+      - name: Installation des dependances
+        run: npm ci
+
+      - name: Compilation du code
+        run: npm run build

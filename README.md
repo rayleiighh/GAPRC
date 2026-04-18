@@ -1,6 +1,8 @@
 # GAPRC - Gestion Automatisée du Pointage et Réconciliation de Caisse
 **TFE 2025-2026 - EPHEC**
 
+![CI Pipeline](https://github.com/rayleiighh/GAPRC/actions/workflows/ci.yml/badge.svg)
+
 <img width="225" height="225" alt="image" src="https://github.com/user-attachments/assets/691853c2-3f97-43ea-8f1c-2eb58d3885c1" />
 
 
