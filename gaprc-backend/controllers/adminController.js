@@ -318,6 +318,72 @@ exports.resetPassword = async (req, res) => {
     }
 };
 
+// POST /api/admin/change-password
+exports.changePassword = async (req, res) => {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const adminId = req.user?.id;
+
+    if (!adminId) {
+        return res.status(401).json({ error: "Accès refusé." });
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({ error: "Tous les champs sont requis." });
+    }
+
+    if (newPassword !== confirmPassword) {
+        return res.status(400).json({ error: "Les nouveaux mots de passe ne correspondent pas." });
+    }
+
+    if (newPassword.length < 8) {
+        return res.status(400).json({ error: "Le nouveau mot de passe doit contenir au moins 8 caractères." });
+    }
+
+    try {
+        const { rows } = await pool.query(
+            'SELECT id, email, password_hash FROM users WHERE id = $1 AND role = $2',
+            [adminId, 'admin']
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Compte admin introuvable." });
+        }
+
+        const admin = rows[0];
+        const validCurrentPassword = await bcrypt.compare(currentPassword, admin.password_hash || '');
+
+        if (!validCurrentPassword) {
+            return res.status(401).json({ error: "Mot de passe actuel incorrect." });
+        }
+
+        const isSamePassword = await bcrypt.compare(newPassword, admin.password_hash || '');
+        if (isSamePassword) {
+            return res.status(400).json({ error: "Le nouveau mot de passe doit être différent de l'ancien." });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+        await pool.query(
+            'UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2',
+            [newPasswordHash, adminId]
+        );
+
+        await logAudit(
+            'CHANGE_PASSWORD',
+            'user',
+            adminId,
+            `admin:${adminId}`,
+            { email: admin.email }
+        );
+
+        res.status(200).json({ message: "Mot de passe mis à jour avec succès." });
+    } catch (error) {
+        console.error('❌ Erreur changePassword:', error);
+        res.status(500).json({ error: "Erreur lors du changement de mot de passe." });
+    }
+};
+
 // GET /api/admin/audit
 exports.getAuditLogs = async (req, res) => {
     try {

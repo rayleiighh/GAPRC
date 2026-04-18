@@ -22,7 +22,83 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
   const [loadingAudit, setLoadingAudit] = useState(true);
   const [loadingMoreAudit, setLoadingMoreAudit] = useState(false);
   const [hasMoreAudit, setHasMoreAudit] = useState(true);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
   const AUDIT_PAGE_SIZE = 20;
+
+  const lastPasswordChangeLog = logs.find((log: any) => log.action === "CHANGE_PASSWORD");
+  const lastPasswordChangeText = lastPasswordChangeLog
+    ? new Date(lastPasswordChangeLog.created_at).toLocaleString("fr-BE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Jamais";
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Tous les champs sont obligatoires.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Les nouveaux mots de passe ne correspondent pas.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("Le nouveau mot de passe doit contenir au moins 8 caractères.");
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      const token = localStorage.getItem("adminToken");
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Impossible de changer le mot de passe.");
+      }
+
+      setPasswordSuccess("Mot de passe mis à jour. Reconnexion en cours...");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setTimeout(() => {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminUser");
+        window.location.assign("/admin/login");
+      }, 1200);
+    } catch (err: any) {
+      setPasswordError(err.message || "Erreur lors du changement de mot de passe.");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const fetchAudit = async (offset: number, append = false) => {
     try {
@@ -157,12 +233,73 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <h4 style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0 }}>Mot de passe Directeur</h4>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", margin: "4px 0 0 0" }}>Dernière modification : il y a 30 jours</p>
+              <p style={{ fontSize: "0.8rem", color: "#6b7280", margin: "4px 0 0 0" }}>
+                Dernière modification : {lastPasswordChangeText}
+              </p>
             </div>
-            <button style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "white", cursor: "pointer", fontWeight: 600 }}>
-              Modifier
+            <button
+              onClick={() => {
+                setShowPasswordForm((prev) => !prev);
+                setPasswordError("");
+                setPasswordSuccess("");
+              }}
+              style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "white", cursor: "pointer", fontWeight: 600 }}
+            >
+              {showPasswordForm ? "Fermer" : "Modifier"}
             </button>
           </div>
+
+          {showPasswordForm && (
+            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Mot de passe actuel"
+                style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px", fontSize: "0.85rem" }}
+              />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nouveau mot de passe"
+                style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px", fontSize: "0.85rem" }}
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirmer le nouveau mot de passe"
+                style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px", fontSize: "0.85rem" }}
+              />
+
+              {passwordError && (
+                <p style={{ margin: 0, color: "#dc2626", fontSize: "0.78rem", fontWeight: 700 }}>{passwordError}</p>
+              )}
+              {passwordSuccess && (
+                <p style={{ margin: 0, color: "#15803d", fontSize: "0.78rem", fontWeight: 700 }}>{passwordSuccess}</p>
+              )}
+
+              <button
+                onClick={handleChangePassword}
+                disabled={passwordLoading}
+                style={{
+                  alignSelf: "flex-start",
+                  padding: "9px 14px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "#111827",
+                  color: "white",
+                  cursor: passwordLoading ? "not-allowed" : "pointer",
+                  opacity: passwordLoading ? 0.7 : 1,
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                }}
+              >
+                {passwordLoading ? "Mise à jour..." : "Enregistrer le nouveau mot de passe"}
+              </button>
+            </div>
+          )}
         </div>
       </Section>
 

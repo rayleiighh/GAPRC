@@ -605,6 +605,24 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Correctif appliqué, prêt à commit en lot isolé.
 
+## 🟡 [PWA/API] Changement du mot de passe Directeur - Implémentation complète
+
+**Objectif :** Transformer le bouton "Modifier" de l'onglet Paramètres en fonctionnalité métier réelle, sécurisée et testable en démonstration jury.
+
+**Réalisations techniques :**
+- **Backend :** ajout de la route protégée `POST /api/admin/change-password`.
+- **Contrôleur :** implémentation de `changePassword` dans `adminController.js` avec validations métier (champs requis, confirmation identique, longueur minimale, mot de passe différent de l'ancien).
+- **Sécurité :** vérification du mot de passe actuel via `bcrypt.compare`, hashage du nouveau mot de passe (`bcrypt`), invalidation des anciens jetons de reset (`reset_token`, `reset_token_expires`), journalisation RGPD via `logAudit` (`CHANGE_PASSWORD`).
+- **Frontend :** activation du bouton "Modifier" dans `SettingsTab.tsx`, affichage d'un formulaire inline (actuel, nouveau, confirmation), gestion des erreurs/succès, appel API authentifié (`Authorization: Bearer`).
+- **UX sécurité :** après succès, suppression de la session locale (`adminToken`, `adminUser`) puis redirection automatique vers `/admin/login` pour forcer une reconnexion propre.
+
+**Impact :**
+- Supprime un stub visible en démo et renforce la crédibilité du produit.
+- Couvre un cas de sécurité attendu dans un panneau d'administration.
+- Assure la traçabilité d'une action sensible dans les logs d'audit.
+
+**Statut :** Fonctionnalité implémentée, prête à commit en lot isolé.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 
