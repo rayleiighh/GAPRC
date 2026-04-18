@@ -589,6 +589,22 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Correctif appliqué, prêt à commit en lot isolé.
 
+## 🟡 [PWA] Sécurisation visuelle du Dashboard - ProtectedRoute
+
+**Objectif :** Empêcher l'affichage transitoire de `/dashboard` sans authentification (effet de "flash" avant redirection).
+
+**Réalisations techniques :**
+- Mise à jour de `routes.ts` avec un guard de route via `loader` (`dashboardLoader`).
+- Vérification immédiate de la présence de `adminToken` dans `localStorage` avant rendu de la page direction.
+- Redirection instantanée vers `/admin/login` via `redirect()` si le token est absent.
+
+**Impact :**
+- Supprime le flash visuel non authentifié.
+- Renforce la perception de sécurité côté jury et utilisateur final.
+- Aligne le comportement avec un standard React de route protégée.
+
+**Statut :** Correctif appliqué, prêt à commit en lot isolé.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 
