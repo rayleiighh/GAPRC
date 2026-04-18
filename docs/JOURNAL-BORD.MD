@@ -623,6 +623,85 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Fonctionnalité implémentée, prête à commit en lot isolé.
 
+## 🟡 [API/Sécurité] RBAC Admin explicite sur les routes d'administration
+
+**Objectif :** Renforcer la sécurité en exigeant non seulement un JWT valide, mais aussi un rôle `admin` explicite pour chaque route sensible.
+
+**Réalisations techniques :**
+- Ajout d'un middleware réutilisable `requireRole(role)` dans `middlewares/auth.js`.
+- Application du contrôle RBAC sur toutes les routes admin protégées (`jobistes`, `assignBadge`, `delete`, `audit`, `change-password`).
+- Conservation de `verifyToken` + ajout de `requireRole('admin')` dans la chaîne middleware.
+
+**Impact :**
+- Un token valide avec un rôle non-admin ne peut plus accéder aux endpoints d'administration.
+- Aligne la sécurité backend avec une vraie politique d'autorisation (RBAC minimal propre).
+
+**Statut :** Correctif appliqué, prêt à commit en lot isolé.
+
+## 🟡 [API/Sécurité] Validation d'entrée minimale sur routes critiques
+
+**Objectif :** Éviter les payloads incohérents côté backend (erreurs silencieuses / données invalides) sans refactor lourd.
+
+**Réalisations techniques :**
+- `scanController.js` : validation du format `nfc_uid` + `timestamp` numérique positif.
+- `transactionsController.js` : validation de `shift_id` (>0), champs requis (`client_name`, `sport`, `duration`) et montants non négatifs.
+- `shiftController.js` : validation de `shift_id`, montants, présence `start_time/end_time`, et type du champ `transactions`.
+- Standardisation des valeurs numériques parsées avant insertion SQL.
+
+**Impact :**
+- Réduction des erreurs métier en production (payload mal formé rejeté en HTTP 400 explicite).
+- Renforcement de la robustesse API face aux appels externes incomplets.
+
+**Statut :** Correctif appliqué, prêt à commit en lot isolé.
+
+## 🟡 [DevOps] Standardisation de configuration - Fichiers `.env.example`
+
+**Objectif :** Fiabiliser l'onboarding et éviter les erreurs de configuration en séparant clairement secrets réels et variables attendues.
+
+**Réalisations techniques :**
+- Création de `.env.example` à la racine (stack Docker Compose globale).
+- Création de `gaprc-backend/.env.example` (variables API Node.js locales).
+- Création de `gaprc-frontend/.env.example` (variables Vite côté client).
+- Ajout de placeholders explicites (DB, JWT, email, URL LAN) et clés optionnelles matérielles commentées.
+
+**Impact :**
+- Démarrage projet plus rapide et reproductible.
+- Réduction du risque de fuite de secrets dans Git.
+
+**Statut :** Correctif appliqué, prêt à commit en lot isolé.
+
+## 🟡 [Tests/API] Ajout de tests d'intégration sur scénarios critiques
+
+**Objectif :** Consolider la crédibilité technique du backend avec des tests API sur les cas métier sensibles.
+
+**Réalisations techniques :**
+- Ajout de `supertest` en dépendance de développement du backend.
+- Adaptation de `server.js` pour exporter `app`/`server` et éviter l'écoute réseau automatique lors des tests (`require.main === module`).
+- Création du fichier `tests/api.integration.test.js` avec 2 scénarios critiques :
+  - `POST /api/scan` : validation de l'idempotence en cas de conflit concurrent (`23505`) avec retour `resume`.
+  - `POST /api/admin/change-password` : rejet propre si le mot de passe actuel est incorrect.
+
+**Impact :**
+- Régression critique mieux couverte avant mise en prod.
+- Démonstration concrète d'une démarche QA orientée risques.
+
+**Statut :** Correctif appliqué, prêt à commit en lot isolé.
+
+## 🟡 [DevOps/Documentation] Mini runbook production locale dans le README
+
+**Objectif :** Donner une procédure opérationnelle claire (déploiement, contrôle, backup, rollback) pour sécuriser les mises en production On-Premise.
+
+**Réalisations techniques :**
+- Ajout d'une section `Runbook On-Premise (Production Locale)` dans `README.md`.
+- Inclusion des commandes standards : update (`git pull`, `docker compose up -d --build`), vérification des logs, backup manuel, restauration SQL, rollback commit.
+- Ajout d'une checklist `go/no-go` orientée scénarios critiques (route protégée, guard shift, changement mot de passe, audit).
+
+**Impact :**
+- Facilite l'exploitation réelle par un non-développeur.
+- Réduit le risque d'erreur opérationnelle pendant la démonstration et en production locale.
+
+**Statut :** Correctif appliqué, prêt à commit en lot isolé.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 

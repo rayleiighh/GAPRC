@@ -59,6 +59,10 @@ app.get('/api/health', async (req, res) => {
 });
 
 // CA1 : Le serveur démarre (ATTENTION: On utilise server.listen et pas app.listen)
-server.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Serveur API & WebSockets démarré sur http://localhost:${port}`);
-});
+if (require.main === module) {
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`🚀 Serveur API & WebSockets démarré sur http://localhost:${port}`);
+  });
+}
+
+module.exports = { app, server, io };

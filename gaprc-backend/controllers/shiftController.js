@@ -5,6 +5,26 @@ const { logAudit } = require('../utils/audit');
 exports.closeShift = async (req, res) => {
     const { shift_id, comment, amount_cash, amount_card, transactions, start_time, end_time } = req.body;
 
+    const parsedShiftId = Number.parseInt(shift_id, 10);
+    const parsedCash = Number(amount_cash);
+    const parsedCard = Number(amount_card);
+
+    if (!Number.isInteger(parsedShiftId) || parsedShiftId <= 0) {
+        return res.status(400).json({ error: 'shift_id invalide' });
+    }
+
+    if (!Number.isFinite(parsedCash) || parsedCash < 0 || !Number.isFinite(parsedCard) || parsedCard < 0) {
+        return res.status(400).json({ error: 'Montants invalides (cash/carte)' });
+    }
+
+    if (!start_time || !end_time) {
+        return res.status(400).json({ error: 'start_time et end_time sont requis' });
+    }
+
+    if (transactions && !Array.isArray(transactions)) {
+        return res.status(400).json({ error: 'transactions doit être un tableau' });
+    }
+
     // On récupère un client dédié du pool pour faire la transaction SQL (CA5)
     const client = await pool.connect(); 
 
@@ -27,13 +47,13 @@ exports.closeShift = async (req, res) => {
                     ON CONFLICT (local_id) DO NOTHING; -- Idempotence PWA
                 `;
                 await client.query(txnQuery, [
-                    shift_id, txn.client_name, txn.sport, txn.duration, 
+                    parsedShiftId, txn.client_name, txn.sport, txn.duration, 
                     txn.amount_cash, txn.amount_card, txn.local_id
                 ]);
             }
         }
 
-        const actual_amount = parseFloat(amount_cash) + parseFloat(amount_card);
+        const actual_amount = parsedCash + parsedCard;
 
         // Insertion du rapport de caisse avec le total calculé
         const reportQuery = `
@@ -41,7 +61,7 @@ exports.closeShift = async (req, res) => {
             VALUES ($1, $2, $3)
             RETURNING *;
         `;
-        const reportResult = await client.query(reportQuery, [shift_id, expected_amount, actual_amount]);
+        const reportResult = await client.query(reportQuery, [parsedShiftId, expected_amount, actual_amount]);
 
         // Fermeture officielle du shift (On insère les heures et le commentaire)
         const closeShiftQuery = `
@@ -51,13 +71,13 @@ exports.closeShift = async (req, res) => {
                 comment = $4
             WHERE id = $1;
         `;
-        await client.query(closeShiftQuery, [shift_id, start_time, end_time, comment]);
+        await client.query(closeShiftQuery, [parsedShiftId, start_time, end_time, comment]);
 
         const performedBy = req.user?.id ? `user:${req.user.id}` : 'kiosk';
         await logAudit(
             'CLOSE_SHIFT',
             'shift',
-            shift_id,
+            parsedShiftId,
             performedBy,
             {
                 montant_calcule: expected_amount,

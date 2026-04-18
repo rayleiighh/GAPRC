@@ -8,9 +8,18 @@ const processNfcScan = async (req, res) => {
         return res.status(400).json({ error: "L'UID du badge et l'horodatage sont requis." });
     }
 
+    if (typeof nfc_uid !== 'string' || nfc_uid.trim().length < 4) {
+        return res.status(400).json({ error: "UID NFC invalide." });
+    }
+
+    const parsedTimestamp = Number(timestamp);
+    if (!Number.isFinite(parsedTimestamp) || parsedTimestamp <= 0) {
+        return res.status(400).json({ error: "Horodatage invalide." });
+    }
+
     // 🔴 LOGIQUE MÉTIER : Différencier un scan "En direct" d'une "Synchro différée"
     const now = Math.floor(Date.now() / 1000); // Timestamp actuel en secondes
-    const scanAge = Math.abs(now - timestamp); // Âge du scan en secondes
+    const scanAge = Math.abs(now - parsedTimestamp); // Âge du scan en secondes
     const isLiveScan = scanAge < 60; // Si le scan a moins d'une minute, il est "Live"
 
     try {

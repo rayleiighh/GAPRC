@@ -5,6 +5,22 @@ const pool = require('../config/db'); // Assure-toi que le chemin vers ta config
 exports.addTransaction = async (req, res) => {
     const { shift_id, client_name, sport, duration, amount_cash, amount_card, local_id } = req.body;
 
+    const parsedShiftId = Number.parseInt(shift_id, 10);
+    const parsedCash = Number(amount_cash);
+    const parsedCard = Number(amount_card);
+
+    if (!Number.isInteger(parsedShiftId) || parsedShiftId <= 0) {
+        return res.status(400).json({ error: 'shift_id invalide' });
+    }
+
+    if (!client_name || !sport || !duration) {
+        return res.status(400).json({ error: 'client_name, sport et duration sont requis' });
+    }
+
+    if (!Number.isFinite(parsedCash) || parsedCash < 0 || !Number.isFinite(parsedCard) || parsedCard < 0) {
+        return res.status(400).json({ error: 'Montants invalides (cash/carte)' });
+    }
+
     try {
         // 1. Vérifier si la transaction existe déjà (grâce au local_id généré hors-ligne)
         if (local_id) {
@@ -28,7 +44,7 @@ exports.addTransaction = async (req, res) => {
             RETURNING *;
         `;
         
-        const values = [shift_id, client_name, sport, duration, amount_cash, amount_card, local_id];
+        const values = [parsedShiftId, client_name, sport, duration, parsedCash, parsedCard, local_id];
         const result = await pool.query(insertQuery, values);
 
         res.status(201).json({

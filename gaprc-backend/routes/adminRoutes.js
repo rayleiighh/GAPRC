@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const { verifyToken } = require('../middlewares/auth');
+const { verifyToken, requireRole } = require('../middlewares/auth');
 
 const rateLimit = require('express-rate-limit');
 
@@ -19,11 +19,11 @@ router.post('/forgot-password', loginLimiter, adminController.forgotPassword);
 router.post('/reset-password', loginLimiter, adminController.resetPassword);
 
 // CA2 : Routes d'administration (Protégées par JWT)
-router.get('/jobistes', verifyToken, adminController.getAllJobistes);
-router.post('/jobistes', verifyToken, adminController.addJobiste);
-router.post('/jobistes/:id/badge', verifyToken, adminController.assignBadge);
-router.delete('/jobistes/:id', verifyToken, adminController.deleteJobiste);
-router.get('/audit', verifyToken, adminController.getAuditLogs);
-router.post('/change-password', verifyToken, adminController.changePassword);
+router.get('/jobistes', verifyToken, requireRole('admin'), adminController.getAllJobistes);
+router.post('/jobistes', verifyToken, requireRole('admin'), adminController.addJobiste);
+router.post('/jobistes/:id/badge', verifyToken, requireRole('admin'), adminController.assignBadge);
+router.delete('/jobistes/:id', verifyToken, requireRole('admin'), adminController.deleteJobiste);
+router.get('/audit', verifyToken, requireRole('admin'), adminController.getAuditLogs);
+router.post('/change-password', verifyToken, requireRole('admin'), adminController.changePassword);
 
 module.exports = router;

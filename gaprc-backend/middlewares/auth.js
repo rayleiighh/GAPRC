@@ -22,3 +22,11 @@ exports.verifyToken = (req, res, next) => {
         return res.status(403).json({ error: 'Token invalide ou expiré.' });
     }
 };
+
+exports.requireRole = (role) => (req, res, next) => {
+    if (!req.user || req.user.role !== role) {
+        return res.status(403).json({ error: 'Accès refusé. Permissions insuffisantes.' });
+    }
+
+    next();
+};
