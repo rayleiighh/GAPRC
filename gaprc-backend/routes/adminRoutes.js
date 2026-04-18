@@ -23,5 +23,6 @@ router.get('/jobistes', verifyToken, adminController.getAllJobistes);
 router.post('/jobistes', verifyToken, adminController.addJobiste);
 router.post('/jobistes/:id/badge', verifyToken, adminController.assignBadge);
 router.delete('/jobistes/:id', verifyToken, adminController.deleteJobiste);
+router.get('/audit', verifyToken, adminController.getAuditLogs);
 
 module.exports = router;

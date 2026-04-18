@@ -55,3 +55,16 @@ CREATE TABLE shift_transactions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE
 );
+
+-- -----------------------------------------------------
+-- Table : audit_logs (Traçabilité RGPD)
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id SERIAL PRIMARY KEY,
+    action VARCHAR(100) NOT NULL,
+    entity VARCHAR(50) NOT NULL,
+    entity_id VARCHAR(50),
+    performed_by VARCHAR(100),
+    details JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

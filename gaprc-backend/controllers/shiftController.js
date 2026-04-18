@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { logAudit } = require('../utils/audit');
 
 // POST /api/shifts/close
 exports.closeShift = async (req, res) => {
@@ -51,6 +52,20 @@ exports.closeShift = async (req, res) => {
             WHERE id = $1;
         `;
         await client.query(closeShiftQuery, [shift_id, start_time, end_time, comment]);
+
+        const performedBy = req.user?.id ? `user:${req.user.id}` : 'kiosk';
+        await logAudit(
+            'CLOSE_SHIFT',
+            'shift',
+            shift_id,
+            performedBy,
+            {
+                montant_calcule: expected_amount,
+                montant_declare: actual_amount,
+                ecart: actual_amount - expected_amount,
+            },
+            client
+        );
 
         // FIN DE LA TRANSACTION SQL : On valide tout (CA5)
         await client.query('COMMIT');

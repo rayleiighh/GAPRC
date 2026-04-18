@@ -1,4 +1,4 @@
-import type { ReactNode, ElementType } from "react";
+import { useEffect, useState, type ReactNode, type ElementType } from "react";
 import { motion } from "motion/react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -18,6 +18,30 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: Element
 );
 
 export function SettingsTab({ shifts }: { shifts: any[] }) {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingAudit, setLoadingAudit] = useState(true);
+
+  useEffect(() => {
+    const fetchAudit = async () => {
+      try {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/audit`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          setLogs(await res.json());
+        }
+      } catch (err) {
+        console.error("Erreur fetch audit", err);
+      } finally {
+        setLoadingAudit(false);
+      }
+    };
+
+    fetchAudit();
+  }, []);
+
   const exportCSV = () => {
     if (shifts.length === 0) return alert("Aucune donnée à exporter.");
     const headers = ["ID", "Date", "Jobiste", "Arrivee", "Depart", "Heures_Prestees", "Encaisse"];
@@ -101,15 +125,48 @@ export function SettingsTab({ shifts }: { shifts: any[] }) {
 
       <Section title="Journal d'Audit (RGPD)" icon={Database}>
         <div style={{ padding: "20px 28px", background: "#f9fafb" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h4 style={{ fontSize: "0.9rem", fontWeight: 700, margin: 0, color: "#374151" }}>Traçabilité des actions</h4>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", margin: "4px 0 0 0" }}>Bientôt disponible : Historique des suppressions et modifications manuelles.</p>
+          <h4 style={{ fontSize: "0.9rem", fontWeight: 700, margin: "0 0 16px 0", color: "#374151" }}>Historique des actions sensibles</h4>
+
+          {loadingAudit ? (
+            <p style={{ fontSize: "0.8rem", color: "#6b7280" }}>Chargement des logs...</p>
+          ) : logs.length === 0 ? (
+            <p style={{ fontSize: "0.8rem", color: "#6b7280" }}>Aucun événement enregistré.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "300px", overflowY: "auto" }}>
+              {logs.map((log) => (
+                <div
+                  key={log.id}
+                  style={{
+                    padding: "10px",
+                    background: "white",
+                    borderRadius: 8,
+                    border: "1px solid #e5e7eb",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 700, margin: 0, color: "#111827" }}>
+                      {log.action}{" "}
+                      <span style={{ color: "#6b7280", fontWeight: 400 }}>
+                        sur {log.entity} #{log.entity_id}
+                      </span>
+                    </p>
+                    <p style={{ fontSize: "0.7rem", color: "#6b7280", margin: "2px 0 0 0" }}>Par: {log.performed_by}</p>
+                  </div>
+                  <span style={{ fontSize: "0.7rem", color: "#9ca3af" }}>
+                    {new Date(log.created_at).toLocaleString("fr-FR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              ))}
             </div>
-            <span style={{ fontSize: "0.75rem", padding: "4px 8px", background: "#e5e7eb", color: "#4b5563", borderRadius: 6, fontWeight: 700 }}>
-              En construction
-            </span>
-          </div>
+          )}
         </div>
       </Section>
     </motion.div>

@@ -505,6 +505,16 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Statut :** Interface directeur stabilisée et "Prod-Ready". Prochaine étape : Sécurisation du firmware ESP32 pour le LAN.
 
+## 🔒 [DB/Sécurité] Journalisation des actions sensibles (COULD-17 #47)
+
+**Objectif :** Garantir la traçabilité (exigence RGPD) et permettre au directeur de justifier toute erreur ou modification manuelle sur les caisses ou les badges.
+
+**Réalisations techniques :**
+- Ajout de la table `audit_logs` (ID, Action, Entité, Utilisateur, Détails JSONB, Timestamp).
+- Implémentation du pattern "Observer/Logger" via un utilitaire backend déclenché sur les actions critiques (ex: `CLOSE_SHIFT`).
+- Exposition de ces données via une route API sécurisée pour affichage instantané dans le Dashboard (SettingsTab).
+
+**Bilan :** Le système est désormais capable de prouver "Qui a fait quoi et quand", sécurisant ainsi la responsabilité du gérant face aux potentielles erreurs comptables des jobistes. L'issue #47 est clôturée.
 
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps

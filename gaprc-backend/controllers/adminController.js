@@ -283,3 +283,14 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ error: "Erreur lors de la réinitialisation du mot de passe." });
     }
 };
+
+// GET /api/admin/audit
+exports.getAuditLogs = async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50');
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Erreur fetch audit :', error);
+        res.status(500).json({ error: 'Erreur lors de la récupération des logs.' });
+    }
+};
