@@ -527,6 +527,17 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Bilan :** L'application répond désormais aux standards de conformité de traçabilité. L'issue #47 est officiellement terminée.
 
+## ⚙️ [DevOps] Résilience Locale - Log Rotation (COULD-20)
+
+**Objectif :** Prévenir la saturation du disque dur de la machine locale ("Disk Full Exception") et garantir un redémarrage autonome.
+
+**Réalisations techniques :**
+- Configuration du driver `json-file` sur Docker Compose.
+- Paramétrage du `max-size` à 10 Mo et `max-file` à 3 pour les services `db`, `backend`, `frontend` et `caddy`.
+- Validation de la politique `restart: always` pour contrer les pannes de courant au Hall Omnisport.
+
+**Bilan :** Le système est désormais protégé contre la fuite d'espace disque. L'issue est clôturée.
+
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps
 - Modifier les seed de db pour que ce soit pret pour la prod, comme les noms des étudiants par exemple etc. 
