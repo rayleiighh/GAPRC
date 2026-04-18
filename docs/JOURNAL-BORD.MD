@@ -527,7 +527,7 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 
 **Bilan :** L'application répond désormais aux standards de conformité de traçabilité. L'issue #47 est officiellement terminée.
 
-## ⚙️ [DevOps] Résilience Locale - Log Rotation (COULD-20)
+## ⚙️ [DevOps] Résilience Locale - Log Rotation (COULD-20 [#51])
 
 **Objectif :** Prévenir la saturation du disque dur de la machine locale ("Disk Full Exception") et garantir un redémarrage autonome.
 
@@ -537,6 +537,19 @@ L'API a été conçue pour supporter les envois différés de la PWA. Lorsqu'une
 - Validation de la politique `restart: always` pour contrer les pannes de courant au Hall Omnisport.
 
 **Bilan :** Le système est désormais protégé contre la fuite d'espace disque. L'issue est clôturée.
+
+
+## 💾 [DevOps] Stratégie de Sauvegarde On-Premise (COULD-19 #50)
+
+**Objectif :** Garantir la pérennité des données métier (jobistes, transactions, audit) face au risque de défaillance matérielle inhérent à l'hébergement local (PC Kiosque).
+
+**Réalisations techniques :**
+- Déploiement du pattern DevOps "Sidecar" en attachant un conteneur spécialisé (`prodrigestivill/postgres-backup-local:15`) au réseau de base de données.
+- Configuration d'un Cron interne (`@daily`) isolant la logique de sauvegarde du système d'exploitation hôte (100% portable Windows/Linux/Mac).
+- Implémentation d'une politique de rétention ("Rolling window" de 7 jours) pour auto-nettoyer les anciens dumps et préserver l'espace de stockage.
+- Création d'un pont de données via un Volume Bind Mount (`./backups`) permettant au directeur de copier facilement ses données comptables sur clé USB.
+
+**Bilan :** Résilience des données validée. Les pannes matérielles ne peuvent plus causer de perte de données supérieure à 24 heures. Issue clôturée.
 
 ## A MODIFIER : 
 - Au niveau des tentatives de mot de passe, ajouter 2 essaies en plus ou bien diminuer le temps

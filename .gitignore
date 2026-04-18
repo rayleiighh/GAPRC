@@ -1,3 +1,4 @@
 # Fichiers d'environnement (Secrets)
 .env
 /gaprc-backend/node_modules
+/backups/
