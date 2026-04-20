@@ -1,4 +1,4 @@
-# GAPRC - Gestion Automatisée du Pointage et Réconciliation de Caisse
+# GAPRC - Système de gestion des présences et de réconciliation de caisse avec persistance hors ligne ( Anciennement : Gestion Automatisée du Pointage et Réconciliation de Caisse)
 **TFE 2025-2026 - EPHEC**
 
 ![CI Pipeline](https://github.com/rayleiighh/GAPRC/actions/workflows/ci.yml/badge.svg)
