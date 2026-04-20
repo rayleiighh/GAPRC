@@ -11,8 +11,8 @@
 
 // --- CONFIGURATION ---
 const char* ssid = "Soul society";
-const char* password = "Benlhajtaybi10";
-const char* serverUrl = "http://192.168.0.139:3000/api/scan"; // Ton backend Node.js
+const char* password = "************";
+const char* serverUrl = "http://************:3000/api/scan"; // Ton backend Node.js
 
 // --- HARDWARE ---
 #define SDA_PIN 21
